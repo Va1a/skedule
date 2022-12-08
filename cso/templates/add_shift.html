@@ -1,0 +1,119 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+	<h1 class="h2">Add New Shift</h1>
+</div>
+<form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
+{{ form.hidden_tag() }}
+<fieldset class='form-group'>
+	<div class='form-group mb-4'>
+		{{ form.shiftName.label(class='form-control-label mb-2') }}
+		
+		{% if form.shiftName.errors %}
+			{{ form.shiftName(class='form-control form-control-lg is-invalid', placeholder='Grave') }}
+			<div class='invalid-feedback'>
+				{% for error in form.shiftName.errors %}
+				<span>{{ error }}</span>
+				{% endfor %}
+			</div>
+		{% else %}
+		{{ form.shiftName(class='form-control form-control-lg', placeholder='Grave') }}
+		{% endif %}
+	</div>
+	<div class="d-flex" style="gap: 1rem;">
+		<div class='form-group mb-4'>
+			<label class='form-control-label mb-2'>Start Date:</label>
+			<small><i>(mm/dd/yyyy)</i></small>
+			<input class='form-control form-control-lg' disabled id="startDate" value='{{ startDate }}'>
+		</div>
+		<div class='form-group mb-4'>
+			{{ form.startTime.label(class='form-control-label mb-2') }}
+			<small><i>(hhmm)</i></small>
+
+			{% if form.startTime.errors %}
+				{{ form.startTime(class='form-control form-control-lg is-invalid', placeholder=startTime, onChange='updateEndTime();') }}
+				<div class='invalid-feedback'>
+					{% for error in form.startTime.errors %}
+					<span>{{ error }}</span>
+					{% endfor %}
+				</div>
+			{% else %}
+			{{ form.startTime(class='form-control form-control-lg', placeholder=startTime, onChange='updateEndTime();') }}
+			{% endif %}
+		</div>
+	</div>
+	<div class="d-flex justify-content-between" style="gap: 1rem;">
+		<div class='form-group mb-4'>
+			{{ form.duration.label(class='form-control-label mb-2') }}
+			<small><i>(hhmm)</i></small>
+			
+			{% if form.duration.errors %}
+				{{ form.duration(class='form-control form-control-lg is-invalid', onChange='updateEndTime();', style='max-width: 8rem;') }}
+				<div class='invalid-feedback'>
+					{% for error in form.duration.errors %}
+					<span>{{ error }}</span>
+					{% endfor %}
+				</div>
+			{% else %}
+			{{ form.duration(class='form-control form-control-lg', placeholder='0500', onChange='updateEndTime();', style='max-width: 8rem;') }}
+			{% endif %}
+		</div>
+		<div class='form-group mb-4'>
+			<label class='form-control-label mb-2'>End Date & Time:</label>
+			<small><i>(mm/dd/yyyy, hhmm)</i></small>
+			<input class='form-control form-control-lg' disabled id="endTime" value='---'>
+		</div>
+	</div>
+	<div class="d-flex" style="gap: 1rem;">
+		<div class='form-group mb-4'>
+			{{ form.minEmployees.label(class='form-control-label mb-2') }}
+			
+			{% if form.minEmployees.errors %}
+				{{ form.minEmployees(class='form-control form-control-lg is-invalid') }}
+				<div class='invalid-feedback'>
+					{% for error in form.minEmployees.errors %}
+					<span>{{ error }}</span>
+					{% endfor %}
+				</div>
+			{% else %}
+			{{ form.minEmployees(class='form-control form-control-lg', placeholder='5') }}
+			{% endif %}
+		</div>
+		<div class='form-group mb-4'>
+			{{ form.maxEmployees.label(class='form-control-label mb-2') }}
+			
+			{% if form.maxEmployees.errors %}
+				{{ form.maxEmployees(class='form-control form-control-lg is-invalid') }}
+				<div class='invalid-feedback'>
+					{% for error in form.maxEmployees.errors %}
+					<span>{{ error }}</span>
+					{% endfor %}
+				</div>
+			{% else %}
+			{{ form.maxEmployees(class='form-control form-control-lg', placeholder='11') }}
+			{% endif %}
+		</div>
+	</div>
+	<div class='form-group mb-4'>
+		{{ form.employees.label(class='form-control-label mb-2') }}
+		<small><i>(Optional, comma-seperated list)</i></small>
+		
+		{% if form.employees.errors %}
+			{{ form.employees(class='form-control form-control-lg is-invalid') }}
+			<div class='invalid-feedback'>
+				{% for error in form.employees.errors %}
+				<span>{{ error }}</span>
+				{% endfor %}
+			</div>
+		{% else %}
+		{{ form.employees(class='form-control form-control-lg', placeholder='01, 02, 15, 82') }}
+		{% endif %}
+	</div>
+</fieldset>
+<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group'>
+	{{ form.submit(class='btn btn-primary') }}
+</div>
+</form>
+</div>
+
+{% endblock %}

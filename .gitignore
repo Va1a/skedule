@@ -1,0 +1,9 @@
+*.pyc
+include/*
+Lib/*
+bin/*
+pyvenv.cfg
+Scripts/*
+pyenv.cfg
+*.db
+.DS_STORE

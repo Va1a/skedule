@@ -1,0 +1,132 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+	<h1 class="h2">Schedule</h1>
+	<div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+      <a href="{{ url_for('main.schedule', week=owp.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary"><span data-feather="arrow-left-circle" class="align-text-bottom"></span> Previous Week</a>
+      <a href="{{ url_for('main.schedule', week=owl.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary">Next Week <span data-feather="arrow-right-circle" class="align-text-bottom"></span></a>
+    </div>
+    <a href="{{ url_for('main.schedule') }}" type="button" class="btn btn-sm btn-outline-secondary">
+      <span data-feather="calendar" class="align-text-bottom"></span>
+      Today
+    </a>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap flex-md-nowrap align-items-center pb-2 mb-1">
+  <div class="me-2" style="font-style: italic;">Viewing week of <b>{{ weekOf.strftime('%B %d, %Y') }}</b></div>
+  {% if unavail %}<div class="text-danger" style="font-style: bold;"><span data-feather="alert-circle" class="align-text-bottom"></span> The schedule for this week has not been published.</div>{% endif %}
+</div>
+
+<div class="table-responsive" {% if unavail %} style="opacity: 25%;" {% endif %}>
+  <table class="table table-striped table-bordered table-sm">
+    <thead>
+      <tr>
+        <th scope="col">Time</th>
+        {% for day in weekdays %}
+        <th scope="col">{{ day['name'] }} ({{ day['date'] }})</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0800</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['0800']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>0900</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['0900']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1000</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1000']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1100</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1100']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1200</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1200']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1300</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1300']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1400</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1400']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1500</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1500']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1600</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1600']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1700</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1700']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1800</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1800']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>1900</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['1900']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>2000</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['2000']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>2100</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['2100']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>2200</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['2200']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td>2300</td>
+        {% for day in days %}
+        <td>{{ day.data['hours']['2300']['shifts']['name']}}</td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
