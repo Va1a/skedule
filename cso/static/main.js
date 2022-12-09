@@ -1,5 +1,5 @@
 (() => {
-  feather.replace({ 'aria-hidden': 'true'})
+  feather.replace({width: '1em', height: '1em'})
 })()
 
 function updateEndTime(){

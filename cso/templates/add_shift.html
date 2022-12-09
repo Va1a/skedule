@@ -1,7 +1,9 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-	<h1 class="h2">Add New Shift</h1>
+<div class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+	<h1 class="h2" class="align-self-center">
+		Add New Shift
+	</h1>
 </div>
 <form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
 {{ form.hidden_tag() }}
@@ -110,8 +112,11 @@
 		{% endif %}
 	</div>
 </fieldset>
-<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group'>
+<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group' style='gap: 1rem;'>
 	{{ form.submit(class='btn btn-primary') }}
+	<button onclick="window.history.back()" class="btn btn-outline-secondary">
+		Cancel
+	</button>
 </div>
 </form>
 </div>

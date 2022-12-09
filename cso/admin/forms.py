@@ -12,6 +12,9 @@ class DeleteWeekScheduleForm(FlaskForm):
 	dhide = HiddenField('WeekDelete', validators=[])
 	submitDeleteWeek = SubmitField('Delete Schedule')
 
+class DeleteShiftForm(FlaskForm):
+	submit = SubmitField('Delete Shift')
+
 class AddShiftForm(FlaskForm):
 	shiftName = StringField('Shift Name:', validators=[DataRequired(), Length(1, 128)])
 	startTime = StringField('Start Time:', validators=[DataRequired(), Regexp(r'^([01]\d|2[0-3])([0-5]\d)$', message='Must be in 24-hour HHMM format!')])

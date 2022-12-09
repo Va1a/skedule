@@ -2,7 +2,7 @@ from flask import render_template, send_from_directory, Blueprint, request, flas
 from flask_login import login_user, current_user, logout_user, login_required
 from cso import db, bcrypt
 from cso.models import User, Day, Shift
-from cso.admin.forms import NewWeekScheduleForm, DeleteWeekScheduleForm, EditShiftForm, AddShiftForm
+from cso.admin.forms import NewWeekScheduleForm, DeleteWeekScheduleForm, EditShiftForm, AddShiftForm, DeleteShiftForm
 from cso.utils import getPacificTime, getWeek, getDayName, daysOfCalendarWeek, oneWeekPrior, oneWeekLater, ymdToDateTime, ymdhmToDateTime, addToTime, deepCopyDict
 
 admin = Blueprint('admin', __name__)
@@ -53,7 +53,7 @@ def configureSchedule():
 
 	#{'name': '', 'timeStart': '', 'timeEnd': '', 'employees': []}
 
-	return render_template('configure_schedule.html', deleteWeekScheduleForm=deleteWeekScheduleForm,newWeekScheduleForm=newWeekScheduleForm, unavail=unavail, weekdays=weekdays, weekOf=weekOf, days=days, owp=oneWeekPrior(weekOf), owl=oneWeekLater(weekOf))
+	return render_template('configure_schedule.html', deleteWeekScheduleForm=deleteWeekScheduleForm,newWeekScheduleForm=newWeekScheduleForm, unavail=unavail, weekdays=weekdays, weekOf=weekOf, days=days, owp=oneWeekPrior(weekOf), owl=oneWeekLater(weekOf), hours=[str(i).zfill(4) for i in range(800, 2400, 100)])
 
 @admin.route('/schedule/configure/add-shift', methods=['GET', 'POST'])
 @login_required
@@ -101,6 +101,7 @@ def editShift(shift_id):
 	shift = Shift.query.get_or_404(shift_id)
 	date = shift.day.date
 	form = EditShiftForm()
+	deleteShiftForm = DeleteShiftForm()
 
 	if request.method == 'GET':
 		form.shiftName.data = shift.name
@@ -137,6 +138,16 @@ def editShift(shift_id):
 		flash('Shift Updated!', 'success')
 		return redirect(url_for('admin.configureSchedule', week=date))
 
-	return render_template('edit_shift.html', form=form, startDate=date.strftime('%m/%d/%Y'))
+	return render_template('edit_shift.html', shift_id=shift_id, form=form, deleteShiftForm=deleteShiftForm, startDate=date.strftime('%m/%d/%Y'))
 
+@admin.route('/schedule/configure/shift/<int:shift_id>/delete', methods=['POST'])
+@login_required
+def deleteShift(shift_id):
+	shift = Shift.query.get_or_404(shift_id)
+	url = url_for('admin.configureSchedule', week=shift.day.date.strftime('%Y-%m-%d'))
+	flash(f'Shift "{shift.name}" Deleted!', 'success')
+	db.session.delete(shift)
+	db.session.commit()
+	
+	return redirect(url)
 
