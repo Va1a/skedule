@@ -110,10 +110,40 @@
 		{% endif %}
 	</div>
 </fieldset>
-<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group'>
+<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group' style='gap: 1rem;'>
 	{{ form.submit(class='btn btn-primary') }}
+	<button onclick="window.history.back()" class="btn btn-outline-secondary">
+		Cancel
+	</button>
+    <button type="button" class="btn btn-primary btn-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteShiftModal">
+      <span data-feather="trash-2" class="align-text-bottom"></span>
+      Delete Shift
+    </button>
 </div>
 </form>
+</div>
+
+<div class="modal fade" id="deleteShiftModal" tabindex="-1" role="dialog" aria-labelledby="deleteShiftModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteShiftModalTitle">Delete Shift</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body">
+      	Continuing will <b><u>PERMANENTLY DELETE</u></b> this shift. The shift will be completely removed from employees' schedules and employees using it to reach their shift minimum will now be under the shift minimum.<br>
+      	If possible, it is advised to <b>edit</b> the shift rather than delete it and create a new one altogether.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method='POST' action='{{ shift_id }}/delete'>
+			{{ deleteShiftForm.hidden_tag() }}
+			{{ deleteShiftForm.submit(class='btn btn-danger') }}
+		</form>
+      </div>
+    </div>
+  </div>
 </div>
 
 {% endblock %}
