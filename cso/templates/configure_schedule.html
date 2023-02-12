@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-	<h1 class="h2">Schedule Configuration</h1>
+	<h1 class="h2">Schedule</h1>
 	<div class="btn-toolbar mb-2 mb-md-0">
     {% if unavail %}
     <button type="button" class="btn btn-sm btn-outline-success me-2 mb-2" data-bs-toggle="modal" data-bs-target="#createWeekModal">
@@ -18,21 +18,27 @@
       <a href="{{ url_for('admin.configureSchedule', week=owp.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary"><span data-feather="arrow-left-circle" class="align-text-bottom"></span> Previous Week</a>
       <a href="{{ url_for('admin.configureSchedule', week=owl.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary">Next Week <span data-feather="arrow-right-circle" class="align-text-bottom"></span></a>
     </div>
-    <a href="{{ url_for('admin.configureSchedule') }}" type="button" class="btn btn-sm btn-outline-secondary mb-2">
+    <a href="{{ url_for('admin.configureSchedule') }}" type="button" class="btn btn-sm btn-outline-secondary me-2 mb-2">
       <span data-feather="calendar" class="align-text-bottom"></span>
       Today
+    </a>
+
+    <a href="{{ url_for('admin.viewTemplates') }}" type="button" class="btn btn-sm btn-outline-primary mb-2">
+      <span data-feather="bookmark" class="align-text-bottom"></span>
+      Templates
     </a>
   </div>
 </div>
 <div class="d-flex flex-wrap flex-md-nowrap align-items-center pb-2 mb-1">
 	<div class="me-2" style="font-style: italic;">Viewing week of <b>{{ weekOf.strftime('%B %d, %Y') }}</b></div>
 	{% if unavail %}<div class="text-danger ml-auto" style="font-style: bold;"><span data-feather="alert-circle" class="align-text-bottom"></span> A schedule for this week has not yet been created. Click "Create" to make a schedule.</div>{% endif %}
+  <div data-bs-toggle="tooltip" data-bs-placement="left" title="Click to switch to viewing" class="ms-auto clickable" onclick="window.location = '{{ url_for('main.schedule', week=weekOf.strftime('%Y-%m-%d')) }}'"><span data-feather="edit"></span> Editing</div>
 </div>
 <div class="table-responsive" {% if unavail %} style="opacity: 25%;" {% endif %}>
   <table class="table table-striped table-bordered table-sm">
     <thead>
       <tr>
-        <th scope="col" class="text-center">Time</th>
+        <th scope="col" class="text-center">Hour</th>
         {% for day in weekdays %}
         <th scope="col" class="text-center">{{ day['name'] }} ({{ day['date'] }})</th>
         {% endfor %}
@@ -45,11 +51,11 @@
         {% for day in days %}
         <td class="text-center">
         {% for shift in day.shifts %}
-        	{% if shift.startTime.strftime('%H00') == hour %} <a href="{{ url_for('admin.editShift', shift_id=shift.id) }}">{{ shift.name }}</a>, 
-        {% else %}
-        {% endif %}
-
-    	{% endfor %}
+        	{% if shift.startTime.strftime('%H00') == hour %} 
+          <a href="{{ url_for('admin.editShift', shift_id=shift.id) }}" class="btn btn-secondary btn-xs">{{ shift.name }}</a>
+          {% else %}
+          {% endif %}
+    	  {% endfor %}
 		  <a href="{{ url_for('admin.addShift', datetime=day.date.strftime('%Y-%m-%d-')+hour) }}" class="add-shift-link">
   			<span data-feather="plus-circle" class="align-text-bottom"></span>
 		  </a>

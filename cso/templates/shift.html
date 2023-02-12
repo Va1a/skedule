@@ -1,0 +1,76 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+	<h1 class="h2" class="align-self-center">
+		Shift Details
+	</h1>
+</div>
+<div class="d-flex" style='gap: 2rem;'>
+	<form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
+	<fieldset class='form-group'>
+		<div class='form-group mb-4'>
+			<label class="form-control-label mb-2" for="shiftName">Shift Name:</label>			
+			<input class="form-control form-control-lg" id="shiftName" name="shiftName" disabled type="text" value="{{shift.name}}">		
+		</div>
+		<div class="d-flex" style="gap: 1rem;">
+			<div class='form-group mb-4'>
+				<label class='form-control-label mb-2'>Start Date:</label>
+				<small><i>(mm/dd/yyyy)</i></small>
+				<input class="form-control form-control-lg" id="startDate" name="startDate" disabled type="text" value="{{shift.startTime.strftime('%m/%d/%Y')}}">
+			</div>
+			<div class='form-group mb-4'>
+				<label class='form-control-label mb-2'>Start Time:</label>
+				<small><i>(hhmm)</i></small>
+				<input class="form-control form-control-lg" id="startTime" name="startTime" disabled type="text" value="{{shift.startTime.strftime('%H%M')}}">
+			</div>
+		</div>
+		<div class="d-flex justify-content-between" style="gap: 1rem;">
+			<div class='form-group mb-4'>
+				<label class='form-control-label mb-2'>Duration:</label>
+				<small><i>(hhmm)</i></small>
+				<input style="max-width: 8rem;" class="form-control form-control-lg" id="duration" name="duration" disabled type="text" value="{{(shift.duration|string).zfill(4)}}">
+			</div>
+			<div class='form-group mb-4'>
+				<label class='form-control-label mb-2'>End Date & Time:</label>
+				<small><i>(mm/dd/yyyy, hhmm)</i></small>
+				<input class='form-control form-control-lg' disabled id="endTime" value='---'>
+			</div>
+		</div>
+		<div class="d-flex" style="gap: 1rem;">
+			<div class='form-group mb-4'>
+				<label class='form-control-label mb-2'>Minimum Employees:</label>
+				<input class="form-control form-control-lg" id="minEmployees" name="minEmployees" disabled type="text" value="{{shift.minEmployees}}">
+			</div>
+			<div class='form-group mb-4'>
+				<label class='form-control-label mb-2'>Maximum Employees:</label>
+				<input class="form-control form-control-lg" id="maxEmployees" name="maxEmployees" disabled type="text" value="{{shift.maxEmployees}}">
+			</div>
+		</div>
+		<div class='form-group mb-4'>
+			<label class='form-control-label mb-2'>Employees:</label>
+			<input class="form-control form-control-lg" id="employees" name="employees" disabled type="text" 
+			value="{% if shift.employees %}{% for emp in shift.employees %}{{emp.csoid|string}}{{ ', ' if not loop.last else '' }}{% endfor %}{% else %}None{% endif %}">
+		</div>
+	</fieldset>
+	</form>
+	{# <div class="vr"></div> #}
+	<script type="text/javascript">
+	</script>
+	<div class="d-flex flex-column" style="gap: 1rem;">
+		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light align-self-stretch' style='max-width: 27.1rem;'>
+			<a href="{{ url_for('main.schedule', week=shift.startTime.strftime('%Y-%m-%d')) }}" class="btn btn-outline-secondary">← Return to Schedule</a>
+		</div>
+		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
+			<h6><label class="form-control-label mb-2">Sign Up for this shift</label></h6>
+			<div id="templatesFormGroup" class='form-group mb-4 d-none'>
+				<label class="form-control-label mb-2" for="templates">Select a template:</label>
+				<select name="templates" class="form-control form-control-lg form-select" id="shiftTemplates">
+				</select>
+			</div>
+			<button id="confirmTemplateCopyBtn" onclick="copyTemplate()" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="right" title="Once your request is approved, you will be signed up for this shift.">Request Shift</button>
+		</div>
+	</div>
+
+</div>
+
+{% endblock %}

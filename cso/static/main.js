@@ -2,6 +2,36 @@
   feather.replace({width: '1em', height: '1em'})
 })()
 
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+
+var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+  return new bootstrap.Popover(popoverTriggerEl)
+})
+
+function resizeXsBtns(){
+  $('.btn-xs').each(function(i, obj) {
+  if($(this).height() != parseInt($(this).css('line-height'))){
+    $(this).css('line-height', '1');
+  } else {
+    $(this).css('line-height', '.5');
+  }
+  });
+}
+window.onresize = resizeXsBtns;
+resizeXsBtns();
+
+if(document.getElementById('endTime')){
+  updateEndTime();
+}
+
+if(document.getElementById('templatesFormGroup')){
+  loadTemplates();
+}
+
 function updateEndTime(){
   const startTime = document.getElementById('startTime').value
   const startDate = document.getElementById('startDate').value
@@ -23,4 +53,3 @@ function updateEndTime(){
     document.getElementById('endTime').value = '---';
   }
 }
-updateEndTime()

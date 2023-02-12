@@ -2,7 +2,7 @@
 {% block content %}
 <div class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 	<h1 class="h2" class="align-self-center">
-		Add New Shift
+		Create New Template
 	</h1>
 </div>
 <div class="d-flex" style='gap: 2rem;'>
@@ -10,66 +10,54 @@
 	{{ form.hidden_tag() }}
 	<fieldset class='form-group'>
 		<div class='form-group mb-4'>
-			{{ form.shiftName.label(class='form-control-label mb-2') }} <red>*</red>
+			{{ form.shiftName.label(class='form-control-label mb-2') }}
 			
 			{% if form.shiftName.errors %}
-				{{ form.shiftName(class='form-control form-control-lg is-invalid', placeholder='Grave') }}
+				{{ form.shiftName(class='form-control form-control-lg is-invalid', placeholder='Grave Template') }}
 				<div class='invalid-feedback'>
 					{% for error in form.shiftName.errors %}
 					<span>{{ error }}</span>
 					{% endfor %}
 				</div>
 			{% else %}
-			{{ form.shiftName(class='form-control form-control-lg', placeholder='Grave') }}
+			{{ form.shiftName(class='form-control form-control-lg', placeholder='Grave Template') }}
 			{% endif %}
 		</div>
-		<div class="d-flex" style="gap: 1rem;">
-			<div class='form-group mb-4'>
-				<label class='form-control-label mb-2'>Start Date:</label>
-				<small><i>(mm/dd/yyyy)</i></small> <red>*</red>
-				<input class='form-control form-control-lg' disabled id="startDate" value='{{ startDate }}' data-bs-toggle="tooltip" data-bs-trigger="hover focus" data-bs-placement="top" title="To change the start date, select a different start date from the schedule."> 
-			</div>
+		<div class="d-flex justify-content-between" style="gap: 1rem;">
 			<div class='form-group mb-4'>
 				{{ form.startTime.label(class='form-control-label mb-2') }}
-				<small><i>(hhmm)</i></small> <red>*</red>
+				<small><i>(hhmm)</i></small>
 
 				{% if form.startTime.errors %}
-					{{ form.startTime(class='form-control form-control-lg is-invalid', placeholder=startTime, onChange='updateEndTime();') }}
+					{{ form.startTime(class='form-control form-control-lg is-invalid', placeholder='1200', onChange='updateEndTime();') }}
 					<div class='invalid-feedback'>
 						{% for error in form.startTime.errors %}
 						<span>{{ error }}</span>
 						{% endfor %}
 					</div>
 				{% else %}
-				{{ form.startTime(class='form-control form-control-lg', placeholder=startTime, onChange='updateEndTime();') }}
+				{{ form.startTime(class='form-control form-control-lg', placeholder='1200', onChange='updateEndTime();') }}
 				{% endif %}
 			</div>
-		</div>
-		<div class="d-flex justify-content-between" style="gap: 1rem;">
 			<div class='form-group mb-4'>
 				{{ form.duration.label(class='form-control-label mb-2') }}
-				<small><i>(hhmm)</i></small> <red>*</red>
+				<small><i>(hhmm)</i></small>
 				
 				{% if form.duration.errors %}
-					{{ form.duration(class='form-control form-control-lg is-invalid', onChange='updateEndTime();', style='max-width: 8rem;') }}
+					{{ form.duration(class='form-control form-control-lg is-invalid', onChange='updateEndTime();') }}
 					<div class='invalid-feedback'>
 						{% for error in form.duration.errors %}
 						<span>{{ error }}</span>
 						{% endfor %}
 					</div>
 				{% else %}
-				{{ form.duration(class='form-control form-control-lg', placeholder='0500', onChange='updateEndTime();', style='max-width: 8rem;') }}
+				{{ form.duration(class='form-control form-control-lg', placeholder='0500', onChange='updateEndTime();') }}
 				{% endif %}
-			</div>
-			<div class='form-group mb-4'>
-				<label class='form-control-label mb-2'>End Date & Time:</label>
-				<small><i>(mm/dd/yyyy, hhmm)</i></small>
-				<input class='form-control form-control-lg' disabled id="endTime" value='---'>
 			</div>
 		</div>
 		<div class="d-flex" style="gap: 1rem;">
 			<div class='form-group mb-4'>
-				{{ form.minEmployees.label(class='form-control-label mb-2') }} <red>*</red>
+				{{ form.minEmployees.label(class='form-control-label mb-2') }}
 				
 				{% if form.minEmployees.errors %}
 					{{ form.minEmployees(class='form-control form-control-lg is-invalid') }}
@@ -83,7 +71,7 @@
 				{% endif %}
 			</div>
 			<div class='form-group mb-4'>
-				{{ form.maxEmployees.label(class='form-control-label mb-2') }} <red>*</red>
+				{{ form.maxEmployees.label(class='form-control-label mb-2') }}
 				
 				{% if form.maxEmployees.errors %}
 					{{ form.maxEmployees(class='form-control form-control-lg is-invalid') }}
@@ -121,7 +109,7 @@
 	</div>
 	</form>
 	{# <div class="vr"></div> #}
-	<script type="text/javascript">
+<script type="text/javascript">
 		async function fetchShiftsOfDay(){
 			$('#shiftsOnDay').empty();
 			$('#confirmCopyBtn').addClass('d-none');
@@ -195,9 +183,9 @@
 	</script>
 	<div class="d-flex flex-column" style="gap: 1rem;">
 		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light align-self-start' style='max-width: 27.1rem;'>
-			<h6><label class="form-control-label mb-2">Copy from another shift</label></h6>
+			<h6><label class="form-control-label mb-2">Copy from existing shift</label></h6>
 			<div class='form-group mb-4'>
-				<label class="form-control-label mb-2" for="copyDate">Date of other shift: <i>(mm/dd/yyyy)</i></label>
+				<label class="form-control-label mb-2" for="copyDate">Date of shift: <i>(mm/dd/yyyy)</i></label>
 				<input name="copyDate" id="copyDate" class="form-control form-control-lg date" type="text" placeholder="{{ startDate }}" onchange="fetchShiftsOfDay()">
 				<div class='invalid-feedback'>
 					<span>Invalid Date</span>
@@ -211,19 +199,18 @@
 					<span>No shifts on this date</span>
 				</div>
 			</div>
-			<button id="confirmCopyBtn" onclick="copyToCurrentShift()" class="btn btn-outline-primary d-none" data-bs-toggle="tooltip" data-bs-placement="right" title="This will overwrite data input into the fields.">← Copy to New Shift</button>
+			<button id="confirmCopyBtn" onclick="copyToCurrentShift()" class="btn btn-outline-primary d-none" data-bs-toggle="tooltip" data-bs-placement="right" title="This will overwrite data input into the fields.">← Copy to New Template</button>
 		</div>
 		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
-			<h6><label class="form-control-label mb-2">Copy from template</label></h6>
+			<h6><label class="form-control-label mb-2">Copy from another template</label></h6>
 			<div id="templatesFormGroup" class='form-group mb-4 d-none'>
 				<label class="form-control-label mb-2" for="templates">Select a template:</label>
 				<select name="templates" class="form-control form-control-lg form-select" id="shiftTemplates">
 				</select>
 			</div>
-			<button id="confirmTemplateCopyBtn" onclick="copyTemplate()" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="right" title="This will overwrite data input into the fields.">← Copy to New Shift</button>
+			<button id="confirmTemplateCopyBtn" onclick="copyTemplate()" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="right" title="This will overwrite data input into the fields.">← Copy to New Template</button>
 			<div id="noTemplatesMsg" class='d-flex flex-column'>
-				<i>No templates have been created yet.</i><br>
-				<a class="btn btn-outline-dark" href="{{ url_for('admin.templateManager') }}">Manage Templates</a>
+				<i>No templates have been created yet.</i>
 			</div>
 		</div>
 	</div>

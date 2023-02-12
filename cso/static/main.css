@@ -2,9 +2,28 @@ body {
   font-size: .875rem;
 }
 
+
+.btn-group-xs > .btn, .btn-xs {
+  padding: .25rem .4rem;
+  font-size: .875rem;
+  line-height: .5;
+  border-radius: .2rem;
+  margin-bottom: .15rem;
+}
+
 .add-shift-link {
   color: #28a745;
   text-decoration: none;
+}
+
+.clickable {
+  cursor: pointer;
+  color: #007bff;
+}
+
+.vr {
+  height: auto;
+  border-color: #dee2e6;
 }
 
 .feather {
@@ -14,6 +33,10 @@ body {
 
 .gold {
   color: #ffce34;
+}
+
+red {
+  color: #ff0000;
 }
 
 /*

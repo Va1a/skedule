@@ -1,8 +1,8 @@
 from flask import render_template, send_from_directory, Blueprint, request, flash, abort, redirect, url_for
 from flask_login import login_user, current_user, logout_user, login_required
 from cso import db, bcrypt
-from cso.models import User, Day, Shift
-from cso.admin.forms import NewWeekScheduleForm, DeleteWeekScheduleForm, EditShiftForm, AddShiftForm, DeleteShiftForm
+from cso.models import User, Day, Shift, Template
+from cso.admin.forms import AddTemplateForm, EditTemplateForm, NewWeekScheduleForm, DeleteWeekScheduleForm, EditShiftForm, AddShiftForm, DeleteShiftForm
 from cso.utils import getPacificTime, getWeek, getDayName, daysOfCalendarWeek, oneWeekPrior, oneWeekLater, ymdToDateTime, ymdhmToDateTime, addToTime, deepCopyDict
 
 admin = Blueprint('admin', __name__)
@@ -46,6 +46,8 @@ def configureSchedule():
 		for day in calendarWeek:
 			dayRow = Day.query.filter_by(date=day.date()).first()
 			if dayRow:
+				for shift in dayRow.shifts:
+					db.session.delete(shift)
 				db.session.delete(dayRow)
 				db.session.commit()
 		flash('Schedule deleted for the week of '+weekOf.strftime('%B %d, %Y'), 'success')
@@ -147,6 +149,89 @@ def deleteShift(shift_id):
 	url = url_for('admin.configureSchedule', week=shift.day.date.strftime('%Y-%m-%d'))
 	flash(f'Shift "{shift.name}" Deleted!', 'success')
 	db.session.delete(shift)
+	db.session.commit()
+	
+	return redirect(url)
+
+@admin.route('/schedule/configure/add-template', methods=['GET', 'POST'])
+@login_required
+def templateManager():
+	form = AddTemplateForm()
+	hour = request.args.get('hour')
+	if form.validate_on_submit():
+		template = Template(name=form.shiftName.data, startTime=form.startTime.data,
+			duration=form.duration.data, minEmployees=form.minEmployees.data, maxEmployees=form.maxEmployees.data)
+		db.session.add(template)
+		db.session.commit()
+		if form.employees.data:
+			empToAdd = form.employees.data.replace(' ', '').split(',')
+			for emp in empToAdd:
+				if not emp.isdigit():
+					flash('Invalid Employee List!', 'danger')
+					return redirect(url_for('admin.templateManager'))
+				employee = User.query.filter_by(csoid=emp).first()
+				if not employee:
+					flash(f'Employee "{emp}" not found!', 'danger')
+					return redirect(url_for('admin.templateManager'))
+				template.employees.append(employee)
+				db.session.commit()
+		flash('Template created', 'success')
+		return redirect(url_for('admin.viewTemplates'))
+	if hour:
+		form.startTime.data = hour
+	return render_template('template_manager.html', form=form)
+
+@admin.route('/schedule/configure/templates')
+def viewTemplates():
+	templates = Template.query.all()
+	return render_template('view_templates.html', templates=templates, hours=[str(i).zfill(4) for i in range(800, 2400, 100)])
+
+@admin.route('/schedule/configure/template/<int:template_id>', methods=['GET','POST'])
+@login_required
+def editTemplate(template_id):
+	template = Template.query.get_or_404(template_id)
+	form = EditTemplateForm()
+	if request.method == 'GET':
+		form.shiftName.data = template.name
+		form.startTime.data = template.startTime
+		form.duration.data = str(template.duration).zfill(4)
+		form.maxEmployees.data = template.maxEmployees
+		form.minEmployees.data = template.minEmployees
+		form.employees.data = ', '.join([str(emp.csoid) for emp in template.employees])
+	if form.validate_on_submit():
+		template.name = form.shiftName.data
+		template.startTime = form.startTime.data
+		template.duration = form.duration.data
+		template.maxEmployees = form.maxEmployees.data
+		template.minEmployees = form.minEmployees.data
+
+		if form.employees.data:
+			empToAdd = form.employees.data.replace(' ', '').split(',')
+			for emp in empToAdd:
+				if not emp.isdigit():
+					flash('Invalid Employee List!', 'danger')
+					return redirect(url_for('admin.editTemplate', template_id=template.id))
+				employee = User.query.filter_by(csoid=emp).first()
+				if not employee:
+					flash(f'Employee "{emp}" not found!', 'danger')
+					return redirect(url_for('admin.editTemplate', template_id=template.id))
+				template.employees.append(employee)
+				db.session.commit()
+		else:
+			template.employees.clear()
+
+		db.session.commit()
+		flash('Template Updated!', 'success')
+		return redirect(url_for('admin.viewTemplates'))
+	return render_template('edit_template.html', form=form, template_id=template_id)
+
+@admin.route('/schedule/configure/template/<int:template_id>/delete', methods=['POST'])
+@login_required
+def deleteTemplate(template_id):
+	template = Template.query.get_or_404(template_id)
+	url = url_for('admin.viewTemplates')
+	flash(f'Template "{template.name}" Deleted!', 'success')
+	db.session.delete(template)
 	db.session.commit()
 	
 	return redirect(url)

@@ -2,6 +2,7 @@ from cso import db, login_manager
 from flask import current_app
 from cso.utils import getPacificTime
 from flask_login import UserMixin
+import json
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -10,6 +11,11 @@ def load_user(user_id):
 user_shift = db.Table('user_shift',
 	db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
 	db.Column('shift_id', db.Integer, db.ForeignKey('shift.id'))
+)
+
+user_shiftTemplate = db.Table('user_shiftTemplate',
+	db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+	db.Column('template_id', db.Integer, db.ForeignKey('template.id'))
 )
 
 class User(db.Model, UserMixin):
@@ -24,6 +30,12 @@ class User(db.Model, UserMixin):
 	meta = db.Column(db.JSON, nullable=False, default={})
 
 	shifts = db.relationship('Shift', secondary=user_shift, backref='employees')
+	shiftTemplates = db.relationship('Template', secondary=user_shiftTemplate, backref='employees')
+
+	def toJSON(self):
+		return {'id': self.id, 'name': self.name, 'date_joined': self.date_joined.strftime('%Y-%m-%d-%H%M'),
+		'csoid': self.csoid, 'email': self.email, 'phone': self.phone, 'meta': self.meta
+		}
 	# comments = db.relationship('Comment', backref='author', lazy=True)
 	# badges = db.relationship('Badge', backref='bearer', lazy=True)
 	# alerts = db.relationship('Alert', backref='assoc_user', lazy=True)
@@ -37,10 +49,24 @@ class Shift(db.Model):
 	minEmployees = db.Column(db.Integer, nullable=False)
 	day_id = db.Column(db.Integer, db.ForeignKey('day.id'), nullable=False) 
 
-	def asJSON(self):
-		return {'name': self.name, 'startTime': self.startTime, 'duration': self.duration, 
-		'maxEmployees': self.maxEmployees, 'minEmployees': self.minEmployees, 
-		'employees': self.employees}
+	def toJSON(self):
+		return {'id': self.id, 'name': self.name, 'startTime': self.startTime.strftime('%Y-%m-%d-%H%M'), 'duration': str(self.duration).zfill(4),
+		'maxEmployees': self.maxEmployees, 'minEmployees': self.minEmployees, 'day_id': self.day_id,
+		'employees': [emp.csoid for emp in self.employees]
+		}
+
+class Template(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	name = db.Column(db.String(128), nullable=False)
+	duration = db.Column(db.Integer, nullable=False)
+	maxEmployees = db.Column(db.Integer, nullable=False)
+	minEmployees = db.Column(db.Integer, nullable=False)
+	startTime = db.Column(db.String(4), nullable=False)
+
+	def toJSON(self):
+		return {'id': self.id, 'name': self.name, 'startTime': self.startTime, 
+		'maxEmployees': self.maxEmployees, 'minEmployees': self.minEmployees,
+		'duration': str(self.duration).zfill(4), 'employees': [emp.csoid for emp in self.employees]}
 
 class Day(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -48,28 +74,8 @@ class Day(db.Model):
 	date = db.Column(db.Date, nullable=False, unique=True)
 	shifts = db.relationship('Shift', backref='day', lazy=True)
 	data = db.Column(db.JSON, nullable=False, default={})
-	# 'hours':{
-	# 	'0000': {'shifts':[]},
-	# 	'0100': {'shifts':[]},
-	# 	'0200': {'shifts':[]},
-	# 	'0300': {'shifts':[]},
-	# 	'0400': {'shifts':[]},
-	# 	'0500': {'shifts':[]},
-	# 	'0600': {'shifts':[]},
-	# 	'0700': {'shifts':[]},
-	# 	'0800': {'shifts':[]},
-	# 	'0900': {'shifts':[]},
-	# 	'1000': {'shifts':[]},
-	# 	'1100': {'shifts':[]},
-	# 	'1200': {'shifts':[]},
-	# 	'1300': {'shifts':[]},
-	# 	'1400': {'shifts':[]},
-	# 	'1500': {'shifts':[]},
-	# 	'1600': {'shifts':[]},
-	# 	'1700': {'shifts':[]},
-	# 	'1800': {'shifts':[]},
-	# 	'1900': {'shifts':[]},
-	# 	'2000': {'shifts':[]},
-	# 	'2100': {'shifts':[]},
-	# 	'2200': {'shifts':[]},
-	# 	'2300': {'shifts':[]}}
+
+	def toJSON(self):
+		return {'id': self.id, 'name': self.name, 'date': self.date.strftime('%Y-%m-%d'),
+		'shifts': [{'id': shift.id, 'name': shift.name, 'startTime': shift.startTime.strftime('%H%M')} for shift in self.shifts]
+		}

@@ -31,10 +31,12 @@ def create_app(config_class=Config):
 	from cso.users.routes import users
 	from cso.admin.routes import admin
 	from cso.main.routes import main
+	from cso.api.routes import api
 	from cso.errors.handlers import errors
 	app.register_blueprint(users)
 	app.register_blueprint(admin)
 	app.register_blueprint(main)
 	app.register_blueprint(errors)
+	app.register_blueprint(api)
 	
 	return app
