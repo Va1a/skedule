@@ -3,6 +3,9 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
   <h1 class="h2">Schedule</h1>
   <div class="btn-toolbar mb-2 mb-md-0">
+    <a href="{{ url_for('main.schedule', week=weekOf.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary me-2 mb-2">
+      <span data-feather="refresh-cw" class="align-text-bottom"></span>
+    </a>
     <div class="btn-group me-2 mb-2">
       <a href="{{ url_for('main.schedule', week=owp.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary"><span data-feather="arrow-left-circle" class="align-text-bottom"></span> Previous Week</a>
       <a href="{{ url_for('main.schedule', week=owl.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary">Next Week <span data-feather="arrow-right-circle" class="align-text-bottom"></span></a>
@@ -36,9 +39,9 @@
         {% for day in days %}
         <td class="text-center">
         {% for shift in day.shifts %}
-          {% if shift.startTime.strftime('%H00') == hour %} 
-          <a data-bs-toggle="popover" data-bs-trigger="hover focus" title="{{shift.name}}" data-bs-placement="bottom" data-bs-html="true" data-bs-content="
-          <i>Double-click to view</i><br>
+          {% if shift.startTime.strftime('%H00') == hour %}
+          <a data-bs-toggle="popover" data-bs-trigger="hover focus" title="<a href='{{url_for('main.viewShift', shift_id=shift.id)}}'>{{shift.name}}</a>" data-bs-placement="right" data-bs-html="true" data-bs-content="
+          <i>Double-click to Open</i><br>
           Start Time: <b>{{shift.startTime.strftime('%H%M')}}</b><br>
           Duration: <b>{{(shift.duration|string).zfill(4)}}</b><br>
           # Scheduled: <b>{{shift.employees|length}}</b><br>
@@ -50,7 +53,7 @@
           <b>{{emp.csoid|string}}</b>{{ ', ' if not loop.last else '' }}
           {% endfor %}
           {% endif %}
-          " class="btn btn-secondary btn-xs" href="#" ondblclick="window.location = '{{url_for('main.viewShift', shift_id=shift.id)}}'">{{ shift.name }}</a>
+          " class="btn btn-{% if highlight == shift.id|string %}primary{% else %}secondary{% endif %} btn-xs" href="#" ondblclick="window.location = '{{url_for('main.viewShift', shift_id=shift.id)}}'">{{ shift.name }}</a>
           {% else %}
           {% endif %}
         {% endfor %}

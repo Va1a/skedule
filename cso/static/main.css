@@ -2,6 +2,16 @@ body {
   font-size: .875rem;
 }
 
+.hr-text {
+  line-height: 1em;
+  position: relative;
+  outline: 0;
+  border: 0;
+  color: black;
+  text-align: center;
+  height: 1.5em;
+  opacity: .5;
+}
 
 .btn-group-xs > .btn, .btn-xs {
   padding: .25rem .4rem;

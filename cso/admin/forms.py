@@ -60,7 +60,6 @@ class EditShiftForm(FlaskForm):
 	duration = StringField('Duration:', validators=[DataRequired(), Regexp(r'^([01]\d|2[0-3])([0-5]\d)$', message='Must be in 24-hour HHMM format!')])
 	maxEmployees = IntegerField('Maximum # of Employees:', validators=[DataRequired()])
 	minEmployees = IntegerField('Minimum # of Employees:', validators=[DataRequired()])
-	employees = StringField('Assign Employees:', validators=[Optional(), Length(0, 512), Regexp(r'^[1-9]\d(?:, {0,1}[1-9]\d)*$', message='Input must be a comma seperated list of CSO IDs.')])
 	submit = SubmitField('Save Changes')
 
 	def validate_maxEmployees(self, maxEmployees):

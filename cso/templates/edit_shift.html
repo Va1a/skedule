@@ -2,8 +2,13 @@
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 	<h1 class="h2">Edit Shift</h1>
+	<div class="btn-toolbar mb-2 mb-md-0">
+    <a href="{{ url_for('main.viewShift', shift_id=shift_id) }}" type="button" class="btn btn-sm btn-outline-secondary mb-2">
+      <span data-feather="eye" class="align-text-bottom"></span>
+    </a>
+	</div>
 </div>
-<div class="d-flex" style='gap: 2rem;'>
+<div class="d-flex" style='gap: 2rem; max-width:100vw; overflow-x: scroll;'>
 	<form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
 	{{ form.hidden_tag() }}
 	<fieldset class='form-group'>
@@ -94,21 +99,6 @@
 				{{ form.maxEmployees(class='form-control form-control-lg', placeholder='11') }}
 				{% endif %}
 			</div>
-		</div>
-		<div class='form-group mb-4'>
-			{{ form.employees.label(class='form-control-label mb-2') }}
-			<small><i>(Optional, comma-seperated list)</i></small>
-			
-			{% if form.employees.errors %}
-				{{ form.employees(class='form-control form-control-lg is-invalid') }}
-				<div class='invalid-feedback'>
-					{% for error in form.employees.errors %}
-					<span>{{ error }}</span>
-					{% endfor %}
-				</div>
-			{% else %}
-			{{ form.employees(class='form-control form-control-lg', placeholder='01, 02, 15, 82') }}
-			{% endif %}
 		</div>
 	</fieldset>
 	<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group' style='gap: 1rem;'>
@@ -231,6 +221,34 @@
 		</div>
 	</div>
 
+	<div class="d-flex flex-column" style="gap: 1rem;">
+		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light align-self-stretch' style='max-width: 18rem;'>
+			<h6><label class="form-control-label mb-2">Employee List</label></h6>
+			<ul class="list-group mb-2">
+			{% if shift.assignments %}
+			  {% for assignment in shift.assignments %}
+			  <li class="list-group-item d-flex justify-content-between align-items-start" style='overflow-x: scroll; color: {{ assignment.colorize() }};'><span class='me-auto'><b>{{assignment.user.csoid|string}}</b>{{assignment.render()}} {{ assignment.user.name }}</span>
+			  </li>
+			  {% endfor %}
+			{% else %}
+				<li class="list-group-item" style='overflow-x: scroll; color: darkgray;'><i>No Employees...</i></li>
+			{% endif %}
+			</ul>
+			<button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#manageEmployeesModal">Manage Employees</button>
+		</div>
+		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 18rem; max-height: 40vh; overflow-y: scroll;'>
+			<h6>Employee List key</h6>
+			<ul class="list-group mb-2">
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #cfc102;">(REQ)</span> = <span>Pending Request</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #982ff4;">(R)</span> = <span>Ride Along</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #f19e38;">(T)</span> = <span>Trainee</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #0000f5;">(A)</span> = <span>Assigned, Yet to Confirm</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #ea3728;">(C)</span> = <span>Covering</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #000000;">(P)</span> = <span>Probationary</span></li>
+			</ul>
+		</div>
+	</div>
+
 </div>
 
 
@@ -256,5 +274,31 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="manageEmployeesModal" tabindex="-1" role="dialog" aria-labelledby="manageEmployeesModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="manageEmployeesModalTitle">Manage Employees</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body">
+      	Continuing will <b><u>PERMANENTLY DELETE</u></b> this shift. The shift will be completely removed from employees' schedules and employees using it to reach their shift minimum will now be under the shift minimum.<br>
+      	If possible, it is advised to <b>edit</b> the shift rather than delete it.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+			  {# {% if assignment.request %}
+			  	<span class='btn-group'>
+			  	<a class="btn btn-xs btn-outline-success"><span data-feather="check"></span></a>
+			  	<a class="btn btn-xs btn-outline-danger"><span data-feather="x"></span></a>
+			  	</span>
+			  {% endif %} #}
 
 {% endblock %}

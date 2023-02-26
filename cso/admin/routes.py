@@ -1,7 +1,7 @@
 from flask import render_template, send_from_directory, Blueprint, request, flash, abort, redirect, url_for
 from flask_login import login_user, current_user, logout_user, login_required
 from cso import db, bcrypt
-from cso.models import User, Day, Shift, Template
+from cso.models import User, Day, Shift, Template, Assignment
 from cso.admin.forms import AddTemplateForm, EditTemplateForm, NewWeekScheduleForm, DeleteWeekScheduleForm, EditShiftForm, AddShiftForm, DeleteShiftForm
 from cso.utils import getPacificTime, getWeek, getDayName, daysOfCalendarWeek, oneWeekPrior, oneWeekLater, ymdToDateTime, ymdhmToDateTime, addToTime, deepCopyDict
 
@@ -31,7 +31,6 @@ def configureSchedule():
 			unavail = True
 
 	if newWeekScheduleForm.submitNewWeek.data and newWeekScheduleForm.validate():
-	#if newWeekScheduleForm.validate_on_submit():
 		for day in calendarWeek:
 			dayRow = Day.query.filter_by(date=day.date()).first()
 			if not dayRow:
@@ -42,7 +41,6 @@ def configureSchedule():
 		return redirect(url_for('admin.configureSchedule', week=weekOf.strftime('%Y-%m-%d')))
 
 	elif deleteWeekScheduleForm.submitDeleteWeek.data and deleteWeekScheduleForm.validate():
-	#elif deleteWeekScheduleForm.validate_on_submit():
 		for day in calendarWeek:
 			dayRow = Day.query.filter_by(date=day.date()).first()
 			if dayRow:
@@ -52,8 +50,6 @@ def configureSchedule():
 				db.session.commit()
 		flash('Schedule deleted for the week of '+weekOf.strftime('%B %d, %Y'), 'success')
 		return redirect(url_for('admin.configureSchedule', week=weekOf.strftime('%Y-%m-%d')))
-
-	#{'name': '', 'timeStart': '', 'timeEnd': '', 'employees': []}
 
 	return render_template('configure_schedule.html', deleteWeekScheduleForm=deleteWeekScheduleForm,newWeekScheduleForm=newWeekScheduleForm, unavail=unavail, weekdays=weekdays, weekOf=weekOf, days=days, owp=oneWeekPrior(weekOf), owl=oneWeekLater(weekOf), hours=[str(i).zfill(4) for i in range(800, 2400, 100)])
 
@@ -111,7 +107,6 @@ def editShift(shift_id):
 		form.duration.data = str(shift.duration).zfill(4)
 		form.maxEmployees.data = shift.maxEmployees
 		form.minEmployees.data = shift.minEmployees
-		form.employees.data = ', '.join([str(employee.csoid) for employee in shift.employees])
 
 	if form.validate_on_submit():
 		shift.name = form.shiftName.data
@@ -120,27 +115,35 @@ def editShift(shift_id):
 		shift.duration = form.duration.data
 		shift.maxEmployees = form.maxEmployees.data
 		shift.minEmployees = form.minEmployees.data
-
-		if form.employees.data:
-			empToAdd = form.employees.data.replace(' ', '').split(',')
-			for emp in empToAdd:
-				if not emp.isdigit():
-					flash('Invalid Employee List!', 'danger')
-					return redirect(url_for('admin.editShift', shift_id=shift.id))
-				employee = User.query.filter_by(csoid=emp).first()
-				if not employee:
-					flash(f'Employee "{emp}" not found!', 'danger')
-					return redirect(url_for('admin.editShift', shift_id=shift.id))
-				shift.employees.append(employee)
-				db.session.commit()
-		else:
-			shift.employees.clear()
-
 		db.session.commit()
+		
 		flash('Shift Updated!', 'success')
-		return redirect(url_for('admin.configureSchedule', week=date))
+		return redirect(url_for('main.viewShift', shift_id=shift.id))
 
-	return render_template('edit_shift.html', shift_id=shift_id, form=form, deleteShiftForm=deleteShiftForm, startDate=date.strftime('%m/%d/%Y'))
+	return render_template('edit_shift.html', shift=shift, shift_id=shift_id, form=form, deleteShiftForm=deleteShiftForm, startDate=date.strftime('%m/%d/%Y'))
+
+@admin.route('/schedule/configure/shift/<int:shift_id>/assign', methods=['POST'])
+@login_required
+def assignShift(shift_id):
+	return 'Hi'
+	empToAdd = [] #form.employees.data.replace(' ', '').split(',')
+	Assignment.query.filter_by(shift_id=shift.id).delete()
+	for emp in empToAdd:
+		if not emp.isdigit():
+			flash('Invalid Employee List!', 'danger')
+			return redirect(url_for('admin.editShift', shift_id=shift.id))
+		employee = User.query.filter_by(csoid=emp).first()
+		if not employee:
+			flash(f'Employee "{emp}" not found!', 'danger')
+			return redirect(url_for('admin.editShift', shift_id=shift.id))
+		assignment = Assignment(user=employee, shift=shift, confirmed=False)
+		db.session.add(assignment)
+		db.session.commit()
+
+@admin.route('/schedule/configure/shift/<int:shift_id>/requests', methods=['POST'])
+@login_required
+def editShiftRequests(shift_id):
+	return 'Not Implemented'
 
 @admin.route('/schedule/configure/shift/<int:shift_id>/delete', methods=['POST'])
 @login_required

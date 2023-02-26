@@ -8,15 +8,38 @@ import json
 def load_user(user_id):
 	return User.query.get(int(user_id))
 
-user_shift = db.Table('user_shift',
-	db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-	db.Column('shift_id', db.Integer, db.ForeignKey('shift.id'))
-)
-
 user_shiftTemplate = db.Table('user_shiftTemplate',
 	db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
 	db.Column('template_id', db.Integer, db.ForeignKey('template.id'))
 )
+
+class Assignment(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
+	shift_id = db.Column(db.Integer, db.ForeignKey('shift.id', ondelete='CASCADE'))
+	request = db.Column(db.Boolean, nullable=False, default=False)
+	confirmed = db.Column(db.Boolean, nullable=False, default=False)
+	assignment_type = db.Column(db.String(32), nullable=False, default='regular')
+	date_created = db.Column(db.DateTime, nullable=False, default=getPacificTime)
+
+	def render(self):
+		render = ''
+		if self.request:
+			render += '(REQ)'
+		typeDict = {'regular': '', 'ride-along': '(R)', 'trainee': '(T)', 'covering': '(C)', 'probationary': '(P)'}
+		render += (typeDict[self.assignment_type])
+		if not self.confirmed:
+			render += '(A)'
+		return render
+
+	def colorize(self):
+		if not self.confirmed:
+			return '#0000f5'
+		if self.request:
+			return '#cfc102'
+		colors = {'regular': '#000000', 'ride-along': '#982ff4', 'trainee': '#f19e38', 'covering': '#ea3728', 'probationary': '#000000'}
+		return colors[self.assignment_type]
+
 
 class User(db.Model, UserMixin):
 	id = db.Column(db.Integer, primary_key=True)
@@ -29,16 +52,13 @@ class User(db.Model, UserMixin):
 	password = db.Column(db.String(60), nullable=False)
 	meta = db.Column(db.JSON, nullable=False, default={})
 
-	shifts = db.relationship('Shift', secondary=user_shift, backref='employees')
+	assignments = db.relationship(Assignment, backref='user')
 	shiftTemplates = db.relationship('Template', secondary=user_shiftTemplate, backref='employees')
 
 	def toJSON(self):
 		return {'id': self.id, 'name': self.name, 'date_joined': self.date_joined.strftime('%Y-%m-%d-%H%M'),
 		'csoid': self.csoid, 'email': self.email, 'phone': self.phone, 'meta': self.meta
 		}
-	# comments = db.relationship('Comment', backref='author', lazy=True)
-	# badges = db.relationship('Badge', backref='bearer', lazy=True)
-	# alerts = db.relationship('Alert', backref='assoc_user', lazy=True)
 
 class Shift(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -47,12 +67,15 @@ class Shift(db.Model):
 	duration = db.Column(db.Integer, nullable=False)
 	maxEmployees = db.Column(db.Integer, nullable=False)
 	minEmployees = db.Column(db.Integer, nullable=False)
-	day_id = db.Column(db.Integer, db.ForeignKey('day.id'), nullable=False) 
+	day_id = db.Column(db.Integer, db.ForeignKey('day.id'), nullable=False)
+
+	assignments = db.relationship(Assignment, backref='shift')
 
 	def toJSON(self):
 		return {'id': self.id, 'name': self.name, 'startTime': self.startTime.strftime('%Y-%m-%d-%H%M'), 'duration': str(self.duration).zfill(4),
 		'maxEmployees': self.maxEmployees, 'minEmployees': self.minEmployees, 'day_id': self.day_id,
-		'employees': [emp.csoid for emp in self.employees]
+		'employees': [emp.csoid for emp in self.employees],
+		'requests': [emp.csoid for emp in self.requests]
 		}
 
 class Template(db.Model):

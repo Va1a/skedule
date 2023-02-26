@@ -1,9 +1,12 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-	<h1 class="h2" class="align-self-center">
-		Shift Details
-	</h1>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+	<h1 class="h2">Shift Details</h1>
+	<div class="btn-toolbar mb-2 mb-md-0">
+	    <a href="{{ url_for('admin.editShift', shift_id=shift.id) }}" type="button" class="btn btn-sm btn-outline-secondary mb-2">
+	      <span data-feather="edit" class="align-text-bottom"></span>
+	    </a>
+  	</div>
 </div>
 <div class="d-flex" style='gap: 2rem;'>
 	<form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
@@ -38,18 +41,17 @@
 		</div>
 		<div class="d-flex" style="gap: 1rem;">
 			<div class='form-group mb-4'>
-				<label class='form-control-label mb-2'>Minimum Employees:</label>
+				<label class='form-control-label mb-2'>Minimum # of Employees:</label>
 				<input class="form-control form-control-lg" id="minEmployees" name="minEmployees" disabled type="text" value="{{shift.minEmployees}}">
 			</div>
 			<div class='form-group mb-4'>
-				<label class='form-control-label mb-2'>Maximum Employees:</label>
+				<label class='form-control-label mb-2'>Maximum # of Employees:</label>
 				<input class="form-control form-control-lg" id="maxEmployees" name="maxEmployees" disabled type="text" value="{{shift.maxEmployees}}">
 			</div>
 		</div>
-		<div class='form-group mb-4'>
-			<label class='form-control-label mb-2'>Employees:</label>
-			<input class="form-control form-control-lg" id="employees" name="employees" disabled type="text" 
-			value="{% if shift.employees %}{% for emp in shift.employees %}{{emp.csoid|string}}{{ ', ' if not loop.last else '' }}{% endfor %}{% else %}None{% endif %}">
+		<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group' style='gap: 1rem;'>
+			<btn onclick='window.history.back()' class="btn btn-outline-secondary">← Back</btn>
+			<a href="{{ url_for('main.schedule', week=shift.startTime.strftime('%Y-%m-%d'), hl=shift.id) }}" class="btn btn-outline-primary">Highlight in Schedule</a>
 		</div>
 	</fieldset>
 	</form>
@@ -57,17 +59,39 @@
 	<script type="text/javascript">
 	</script>
 	<div class="d-flex flex-column" style="gap: 1rem;">
-		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light align-self-stretch' style='max-width: 27.1rem;'>
-			<a href="{{ url_for('main.schedule', week=shift.startTime.strftime('%Y-%m-%d')) }}" class="btn btn-outline-secondary">← Return to Schedule</a>
+		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light align-self-stretch' style='max-width: 18rem;'>
+			<h6><label class="form-control-label mb-2">Employees for this shift</label></h6>
+			<ul class="list-group mb-2">
+			{% if shift.assignments %}
+			  {% for assignment in shift.assignments %}
+			  <li class="list-group-item" style='overflow-x: scroll; color: {{ assignment.colorize() }};'><b>{{assignment.user.csoid|string}}</b>{{assignment.render()}} {{ assignment.user.name }}</li>
+			  {% endfor %}
+			{% else %}
+				<li class="list-group-item" style='overflow-x: scroll; color: darkgray;'><i>No Employees...</i></li>
+			{% endif %}
+			</ul>
+			{% if requestable %}
+			<form action='{{url_for("main.requestShift", shift_id=shift.id)}}' method='POST'>
+				<button class="btn btn-outline-success w-100" data-bs-toggle="tooltip" data-bs-placement="right" title="Once your request is approved, the shift will become your responsibility.">Request Shift</button>
+			</form>
+			{% elif cancellable %}
+			<form action='{{url_for("main.removeShiftRequest", shift_id=shift.id)}}' method='POST'>
+				<button class="btn btn-outline-danger w-100" data-bs-toggle="tooltip" data-bs-placement="right" title="This will cancel your pending request for this shift.">Cancel Request</button>
+			</form>
+			{% else %}
+				<button class="btn btn-outline-danger w-100" data-bs-toggle="tooltip" data-bs-placement="right" title="This shift is now your responsibility. If you can no longer attend, you must find coverage.">Find Coverage</button>
+			{% endif %}
 		</div>
-		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
-			<h6><label class="form-control-label mb-2">Sign Up for this shift</label></h6>
-			<div id="templatesFormGroup" class='form-group mb-4 d-none'>
-				<label class="form-control-label mb-2" for="templates">Select a template:</label>
-				<select name="templates" class="form-control form-control-lg form-select" id="shiftTemplates">
-				</select>
-			</div>
-			<button id="confirmTemplateCopyBtn" onclick="copyTemplate()" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="right" title="Once your request is approved, you will be signed up for this shift.">Request Shift</button>
+		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 18rem; max-height: 40vh; overflow-y: scroll;'>
+			<h6>Employee List key</h6>
+			<ul class="list-group mb-2">
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #cfc102;">(REQ)</span> = <span>Pending Request</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #982ff4;">(R)</span> = <span>Ride Along</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #f19e38;">(T)</span> = <span>Trainee</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #0000f5;">(A)</span> = <span>Assigned, Yet to Confirm</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #ea3728;">(C)</span> = <span>Covering</span></li>
+				<li class="list-group-item" style='overflow-x: scroll;'><span style="color: #000000;">(P)</span> = <span>Probationary</span></li>
+			</ul>
 		</div>
 	</div>
 

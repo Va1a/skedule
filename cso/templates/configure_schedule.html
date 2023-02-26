@@ -14,18 +14,20 @@
       Delete
     </button>
     {% endif %}
+    <a href="{{ url_for('admin.viewTemplates') }}" type="button" class="btn btn-sm btn-outline-primary me-2 mb-2">
+      <span data-feather="bookmark" class="align-text-bottom"></span>
+      Templates
+    </a>
+    <a href="{{ url_for('admin.configureSchedule', week=weekOf.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary me-2 mb-2">
+      <span data-feather="refresh-cw" class="align-text-bottom"></span>
+    </a>
     <div class="btn-group me-2 mb-2">
       <a href="{{ url_for('admin.configureSchedule', week=owp.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary"><span data-feather="arrow-left-circle" class="align-text-bottom"></span> Previous Week</a>
       <a href="{{ url_for('admin.configureSchedule', week=owl.strftime('%Y-%m-%d')) }}" type="button" class="btn btn-sm btn-outline-secondary">Next Week <span data-feather="arrow-right-circle" class="align-text-bottom"></span></a>
     </div>
-    <a href="{{ url_for('admin.configureSchedule') }}" type="button" class="btn btn-sm btn-outline-secondary me-2 mb-2">
+    <a href="{{ url_for('admin.configureSchedule') }}" type="button" class="btn btn-sm btn-outline-secondary mb-2">
       <span data-feather="calendar" class="align-text-bottom"></span>
       Today
-    </a>
-
-    <a href="{{ url_for('admin.viewTemplates') }}" type="button" class="btn btn-sm btn-outline-primary mb-2">
-      <span data-feather="bookmark" class="align-text-bottom"></span>
-      Templates
     </a>
   </div>
 </div>
