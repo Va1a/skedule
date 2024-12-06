@@ -1,0 +1,233 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+	<h1 class="h2" class="align-self-center">
+		Add New Shift
+	</h1>
+</div>
+<div class="d-flex" style='gap: 2rem;'>
+	<form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
+	{{ form.hidden_tag() }}
+	<fieldset class='form-group'>
+		<div class='form-group mb-4'>
+			{{ form.shiftName.label(class='form-control-label mb-2') }} <red>*</red>
+			
+			{% if form.shiftName.errors %}
+				{{ form.shiftName(class='form-control form-control-lg is-invalid', placeholder='Grave') }}
+				<div class='invalid-feedback'>
+					{% for error in form.shiftName.errors %}
+					<span>{{ error }}</span>
+					{% endfor %}
+				</div>
+			{% else %}
+			{{ form.shiftName(class='form-control form-control-lg', placeholder='Grave') }}
+			{% endif %}
+		</div>
+		<div class="d-flex" style="gap: 1rem;">
+			<div class='form-group mb-4'>
+				<label class='form-control-label mb-2'>Start Date:</label>
+				<small><i>(mm/dd/yyyy)</i></small> <red>*</red>
+				<input class='form-control form-control-lg' disabled id="startDate" value='{{ startDate }}' data-bs-toggle="tooltip" data-bs-trigger="hover focus" data-bs-placement="top" title="To change the start date, select a different start date from the schedule."> 
+			</div>
+			<div class='form-group mb-4'>
+				{{ form.startTime.label(class='form-control-label mb-2') }}
+				<small><i>(hhmm)</i></small> <red>*</red>
+
+				{% if form.startTime.errors %}
+					{{ form.startTime(class='form-control form-control-lg is-invalid', placeholder=startTime, onChange='updateEndTime();') }}
+					<div class='invalid-feedback'>
+						{% for error in form.startTime.errors %}
+						<span>{{ error }}</span>
+						{% endfor %}
+					</div>
+				{% else %}
+				{{ form.startTime(class='form-control form-control-lg', placeholder=startTime, onChange='updateEndTime();') }}
+				{% endif %}
+			</div>
+		</div>
+		<div class="d-flex justify-content-between" style="gap: 1rem;">
+			<div class='form-group mb-4'>
+				{{ form.duration.label(class='form-control-label mb-2') }}
+				<small><i>(hhmm)</i></small> <red>*</red>
+				
+				{% if form.duration.errors %}
+					{{ form.duration(class='form-control form-control-lg is-invalid', onChange='updateEndTime();', style='max-width: 8rem;') }}
+					<div class='invalid-feedback'>
+						{% for error in form.duration.errors %}
+						<span>{{ error }}</span>
+						{% endfor %}
+					</div>
+				{% else %}
+				{{ form.duration(class='form-control form-control-lg', placeholder='0500', onChange='updateEndTime();', style='max-width: 8rem;') }}
+				{% endif %}
+			</div>
+			<div class='form-group mb-4'>
+				<label class='form-control-label mb-2'>End Date & Time:</label>
+				<small><i>(mm/dd/yyyy, hhmm)</i></small>
+				<input class='form-control form-control-lg' disabled id="endTime" value='---'>
+			</div>
+		</div>
+		<div class="d-flex" style="gap: 1rem;">
+			<div class='form-group mb-4'>
+				{{ form.minEmployees.label(class='form-control-label mb-2') }} <red>*</red>
+				
+				{% if form.minEmployees.errors %}
+					{{ form.minEmployees(class='form-control form-control-lg is-invalid') }}
+					<div class='invalid-feedback'>
+						{% for error in form.minEmployees.errors %}
+						<span>{{ error }}</span>
+						{% endfor %}
+					</div>
+				{% else %}
+				{{ form.minEmployees(class='form-control form-control-lg', placeholder='5') }}
+				{% endif %}
+			</div>
+			<div class='form-group mb-4'>
+				{{ form.maxEmployees.label(class='form-control-label mb-2') }} <red>*</red>
+				
+				{% if form.maxEmployees.errors %}
+					{{ form.maxEmployees(class='form-control form-control-lg is-invalid') }}
+					<div class='invalid-feedback'>
+						{% for error in form.maxEmployees.errors %}
+						<span>{{ error }}</span>
+						{% endfor %}
+					</div>
+				{% else %}
+				{{ form.maxEmployees(class='form-control form-control-lg', placeholder='11') }}
+				{% endif %}
+			</div>
+		</div>
+		<div class='form-group mb-4'>
+			{{ form.employees.label(class='form-control-label mb-2') }}
+			<small><i>(Optional, comma-seperated list)</i></small>
+			
+			{% if form.employees.errors %}
+				{{ form.employees(class='form-control form-control-lg is-invalid') }}
+				<div class='invalid-feedback'>
+					{% for error in form.employees.errors %}
+					<span>{{ error }}</span>
+					{% endfor %}
+				</div>
+			{% else %}
+			{{ form.employees(class='form-control form-control-lg', placeholder='01, 02, 15, 82') }}
+			{% endif %}
+		</div>
+	</fieldset>
+	<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group' style='gap: 1rem;'>
+		{{ form.submit(class='btn btn-success') }}
+		<button type="button" onclick="window.history.back()" class="btn btn-outline-secondary">
+			Cancel
+		</button>
+	</div>
+	</form>
+	{# <div class="vr"></div> #}
+	<script type="text/javascript">
+		async function fetchShiftsOfDay(){
+			$('#shiftsOnDay').empty();
+			$('#confirmCopyBtn').addClass('d-none');
+			const select = $('#shiftsOnDay')[0];
+			try {
+				var date = new Date($('#copyDate').val());
+				const offset = date.getTimezoneOffset();
+				date = new Date(date.getTime() - (offset*60*1000));
+				var resp = await $.getJSON('/api/day/byDate/'+date.toISOString().split('T')[0]);
+				$('#copyDate').removeClass('is-invalid');
+				$('#shiftsFormGroup').removeClass('d-none');
+			} catch {
+				$('#copyDate').addClass('is-invalid');
+				$('#shiftsFormGroup').addClass('d-none');
+				return;
+			}
+			shifts = false;
+			for (const shift of resp.shifts) {
+				shifts = true;
+				let newOption = new Option(shift.name+' @ '+shift.startTime,shift.id);
+				select.add(newOption, undefined);
+			}
+			if(!shifts){
+				select.classList.add('is-invalid');
+			} else {
+				select.classList.remove('is-invalid')
+				$('#confirmCopyBtn').removeClass('d-none');
+			}
+		}
+		async function copyToCurrentShift(){
+			const select = $('#shiftsOnDay');
+			const shift = await $.getJSON('/api/shift/'+select.val());
+			$('#shiftName').val(shift.name);
+			$('#startTime').val(shift.startTime.split('-')[3]);
+			$('#duration').val(shift.duration);
+			$('#minEmployees').val(shift.minEmployees);
+			$('#maxEmployees').val(shift.maxEmployees);
+			$('#employees').val(shift.employees.join(', '));
+			updateEndTime();
+		}
+		async function copyTemplate(){
+			const select = $('#shiftTemplates');
+			const shift = await $.getJSON('/api/template/'+select.val());
+			$('#shiftName').val(shift.name);
+			$('#startTime').val(shift.startTime);
+			$('#duration').val(shift.duration);
+			$('#minEmployees').val(shift.minEmployees);
+			$('#maxEmployees').val(shift.maxEmployees);
+			$('#employees').val(shift.employees.join(', '));
+			updateEndTime();
+		}
+		async function loadTemplates(){
+			const select = $('#shiftTemplates')[0];
+			const resp = await $.getJSON('/api/template/list-all');
+
+			var hasTemplates = false;
+			for (const template of resp.templates) {
+				hasTemplates = true;
+				let newOption = new Option(template.name, template.id);
+				select.add(newOption, undefined);
+			}
+			if(hasTemplates){
+				$('#templatesFormGroup').removeClass('d-none');
+				$('#noTemplatesMsg').addClass('d-none');
+			} else {
+				$('#templatesFormGroup').addClass('d-none');
+				$('#confirmTemplateCopyBtn').addClass('d-none');
+				$('#noTemplatesMsg').removeClass('d-none');
+			}
+		}
+	</script>
+	<div class="d-flex flex-column" style="gap: 1rem;">
+		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light align-self-start' style='max-width: 27.1rem;'>
+			<h6><label class="form-control-label mb-2">Copy from another shift</label></h6>
+			<div class='form-group mb-4'>
+				<label class="form-control-label mb-2" for="copyDate">Date of other shift: <i>(mm/dd/yyyy)</i></label>
+				<input name="copyDate" id="copyDate" class="form-control form-control-lg date" type="text" placeholder="{{ startDate }}" onchange="fetchShiftsOfDay()">
+				<div class='invalid-feedback'>
+					<span>Invalid Date</span>
+				</div>
+			</div>
+			<div id="shiftsFormGroup" class='form-group mb-4 d-none'>
+				<label class="form-control-label mb-2" for="shiftsOnDay">Shifts on this date:</label>
+				<select name="shiftsOnDay" class="form-control form-control-lg form-select" id="shiftsOnDay">
+				</select>
+				<div class='invalid-feedback'>
+					<span>No shifts on this date</span>
+				</div>
+			</div>
+			<button id="confirmCopyBtn" onclick="copyToCurrentShift()" class="btn btn-outline-primary d-none" data-bs-toggle="tooltip" data-bs-placement="right" title="This will overwrite data input into the fields.">← Copy to New Shift</button>
+		</div>
+		<div class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
+			<h6><label class="form-control-label mb-2">Copy from template</label></h6>
+			<div id="templatesFormGroup" class='form-group mb-4 d-none'>
+				<label class="form-control-label mb-2" for="templates">Select a template:</label>
+				<select name="templates" class="form-control form-control-lg form-select" id="shiftTemplates">
+				</select>
+			</div>
+			<button id="confirmTemplateCopyBtn" onclick="copyTemplate()" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="right" title="This will overwrite data input into the fields.">← Copy to New Shift</button>
+			<div id="noTemplatesMsg" class='d-flex flex-column'>
+				<i>No templates have been created yet.</i><br>
+				<a class="btn btn-outline-dark" href="{{ url_for('admin.viewTemplates') }}">Manage Templates</a>
+			</div>
+		</div>
+	</div>
+
+</div>
+
+{% endblock %}
