@@ -1,7 +1,12 @@
-from cso import create_app, db
+from skedule import create_app, models, db
 app = create_app()
 ctx = app.app_context()
 ctx.push()
+print('Deleting all data...')
 db.drop_all()
+print('Recreating tables...')
+print(db.metadata.tables.keys())
 db.create_all()
+print(db.inspect(db.engine).get_table_names())
 ctx.pop()
+print('Done!')
