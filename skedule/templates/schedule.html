@@ -35,11 +35,12 @@
     <tbody>
     {% for hour in hours %}
       <tr>
-        <td class="text-center">{{hour}}</td>
+        <td class="text-center align-middle">{{hour}}</td>
         {% for day in days %}
-        <td class="text-center">
+        <td class="text-center align-middle">
         {% for shift in day.shifts %}
           {% if shift.startTime.strftime('%H00') == hour %}
+          <div>
           <a data-bs-toggle="popover" data-bs-trigger="hover focus" title="<a href='{{url_for('main.viewShift', shift_id=shift.id)}}'>{{shift.name}}</a>" data-bs-placement="right" data-bs-html="true" data-bs-content="
           <i>Double-click to Open</i><br>
           Start Time: <b>{{shift.startTime.strftime('%H%M')}}</b><br>
@@ -53,7 +54,7 @@
           <b>{{assignment.user.external_id|string}}</b>{{ ', ' if not loop.last else '' }}
           {% endfor %}
           {% endif %}
-          " class="btn btn-{% if highlight == shift.id|string %}primary{% else %}secondary{% endif %} btn-xs" href="#" ondblclick="window.location = '{{url_for('main.viewShift', shift_id=shift.id)}}'">{{ shift.name }}</a>
+          " class="btn btn-{% if highlight == shift.id|string %}primary{% else %}secondary{% endif %} btn-xs" href="#" ondblclick="window.location = '{{url_for('main.viewShift', shift_id=shift.id)}}'">{{ shift.name }}</a></div>
           {% else %}
           {% endif %}
         {% endfor %}

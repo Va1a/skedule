@@ -49,12 +49,14 @@
     <tbody>
     {% for hour in hours %}
       <tr>
-        <td class="text-center">{{hour}}</td>
+        <td class="text-center align-middle">{{hour}}</td>
         {% for day in days %}
-        <td class="text-center">
+        <td class="text-center align-middle">
         {% for shift in day.shifts %}
         	{% if shift.startTime.strftime('%H00') == hour %} 
+          <div>
           <a href="{{ url_for('admin.editShift', shift_id=shift.id) }}" class="btn btn-secondary btn-xs">{{ shift.name }}</a>
+          </div>
           {% else %}
           {% endif %}
     	  {% endfor %}
