@@ -53,3 +53,121 @@ function updateEndTime(){
     document.getElementById('endTime').value = '---';
   }
 }
+
+const searchBar = document.getElementById("searchBar");
+const searchSuggestions = document.getElementById("searchSuggestions");
+
+// Helper function to format date in YYYY-MM-DD format with zero padding for URL
+function formatDateWithPadding(date) {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Zero-pad month
+    const day = date.getDate().toString().padStart(2, '0'); // Zero-pad day
+    return `${year}-${month}-${day}`; // Return formatted date in YYYY-MM-DD
+}
+
+// Helper function to format date without zero padding for suggestions
+function formatDateWithoutPadding(month, day, year) {
+    const formattedMonth = parseInt(month); // Remove zero padding from month
+    const formattedDay = parseInt(day); // Remove zero padding from day
+    return `${formattedMonth}/${formattedDay}/${year}`;
+}
+
+// Handle "input" event for autofill suggestions
+searchBar.addEventListener("input", function (event) {
+    const input = event.target.value.trim().toLowerCase(); // Normalize input
+    searchSuggestions.innerHTML = ""; // Clear previous suggestions
+
+    const todayKeyword = "Today";
+
+    // Match "today" (case-insensitive and any variation starting with "t")
+    if (input.length > 0 && todayKeyword.toLowerCase().startsWith(input.toLowerCase())) {
+
+        // Add suggestion for today's date
+        const suggestion = document.createElement("li");
+        suggestion.textContent = todayKeyword;  // Display "today" as suggestion
+        suggestion.className = "list-group-item list-group-item-action"; // Bootstrap classes
+        suggestion.style.cursor = "pointer";
+        searchSuggestions.appendChild(suggestion);
+    }
+
+    // Match month, day (optional), and year (optional) for date input
+    const match = input.match(/^(\d{1,2})\/?(\d{0,2})?\/?(\d{0,4})$/); 
+    if (match) {
+        const month = match[1]; // Month (1-12)
+        const dayPart = match[2] || ""; // Partial day (if any)
+        const yearPart = match[3] || new Date().getFullYear(); // Use input year or default to current year
+
+        // Ensure valid month (1-12)
+        if (month >= 1 && month <= 12) {
+            for (let day = 1; day <= 31; day++) {
+                const dayStr = day.toString(); // No padding for day
+                const fullDate = `${month}/${dayStr}/${yearPart}`;
+
+                // Only suggest dates that match the partial input (month/day/year)
+                if (dayPart && !fullDate.startsWith(`${month}/${dayPart}`)) {
+                    continue;
+                }
+
+                // Add suggestion as a list item
+                const suggestion = document.createElement("li");
+                suggestion.textContent = formatDateWithoutPadding(month, dayStr, yearPart); // No zero-padding
+                suggestion.className = "list-group-item list-group-item-action"; // Bootstrap classes
+                suggestion.style.cursor = "pointer";
+
+                searchSuggestions.appendChild(suggestion);
+            }
+        }
+    }
+});
+
+// Handle suggestion click
+searchSuggestions.addEventListener("click", function (event) {
+    if (event.target.tagName === "LI") { // Ensure a list item was clicked
+        const fullDate = event.target.textContent;
+        searchBar.value = fullDate; // Set input value to the clicked suggestion
+        searchSuggestions.innerHTML = ""; // Clear suggestions
+
+        // Keep focus on the search bar after selection
+        searchBar.focus();
+    }
+});
+
+// Handle "Enter" key event to redirect when "today" or any valid date is typed
+searchBar.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+        const input = searchBar.value.trim().toLowerCase();
+
+        // Check if input is "today"
+        if (input === "today") {
+            const today = new Date();
+            const todayDate = formatDateWithPadding(today); // Get today's date in YYYY-MM-DD format
+            window.location.href = `schedule?week=${todayDate}`; // Redirect to today's URL with zero-padded date in the correct format
+        }
+        // Check if the input matches a date format (MM/DD/YYYY)
+        else {
+            const match = input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); // MM/DD/YYYY
+            if (match) {
+                const month = match[1];
+                const day = match[2];
+                const year = match[3];
+                const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // Format to YYYY-MM-DD
+                window.location.href = `schedule?week=${formattedDate}`; // Redirect to formatted URL
+            }
+        }
+    }
+    // Handle "Tab" key to autofill the first suggestion
+    if (event.key === "Tab") {
+        const firstSuggestion = searchSuggestions.querySelector("li"); // Get the first suggestion
+        if (firstSuggestion) {
+            event.preventDefault(); // Prevent default tab behavior
+            searchBar.value = firstSuggestion.textContent; // Autofill search bar with first suggestion
+            searchSuggestions.innerHTML = ""; // Clear suggestions
+            searchBar.focus(); // Keep focus on the search bar
+        }
+    }
+});
+
+// Hide suggestions when input loses focus
+searchBar.addEventListener("blur", function () {
+    setTimeout(() => (searchSuggestions.innerHTML = ""), 200); // Delay to allow click on suggestion
+});

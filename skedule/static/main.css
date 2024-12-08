@@ -6,6 +6,18 @@ tr:hover{
    background-color: rgba(255, 255, 0, 0.5);
 }
 
+#searchSuggestions {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Adds a soft shadow */
+    border-radius: 4px; /* Rounds the corners slightly */
+    background-color: white; /* Ensures the background is white */
+    max-height: 300px; /* Limits the height to avoid overflow */
+    overflow-y: auto; /* Adds scrolling if there are too many suggestions */
+    position: absolute; /* Positions the list above other content */
+    width: 100%; /* Ensures the suggestions box matches the width of the input */
+    z-index: 1000; /* Ensures it stays above other content */
+    margin-top: 4px; /* Slight margin between input and suggestions */
+}
+
 .hr-text {
   line-height: 1em;
   position: relative;

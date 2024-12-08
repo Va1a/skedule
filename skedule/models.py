@@ -60,7 +60,7 @@ class User(db.Model, UserMixin):
 	meta = db.Column(db.JSON, nullable=False, default={})
 
 	assignments = db.relationship(Assignment, backref='user', cascade='all, delete-orphan')
-	shiftTemplates = db.relationship('Template', secondary=user_shiftTemplate, backref='employees', cascade='all, delete-orphan')
+	shiftTemplates = db.relationship('Template', secondary=user_shiftTemplate, backref='employees', cascade='all')
 
 	def toJSON(self):
 		return {'id': self.id, 'name': self.name, 'date_joined': self.date_joined.strftime('%Y-%m-%d-%H%M'),
