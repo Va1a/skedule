@@ -9,8 +9,8 @@ def load_user(user_id):
 	return User.query.get(int(user_id))
 
 user_shiftTemplate = db.Table('user_shiftTemplate',
-	db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-	db.Column('template_id', db.Integer, db.ForeignKey('template.id'))
+	db.Column('user_id', db.Integer, db.ForeignKey('user.id', ondelete='CASCADE')),
+	db.Column('template_id', db.Integer, db.ForeignKey('template.id', ondelete='CASCADE'))
 )
 
 class Assignment(db.Model):
@@ -59,8 +59,8 @@ class User(db.Model, UserMixin):
 	password = db.Column(db.String(60), nullable=False)
 	meta = db.Column(db.JSON, nullable=False, default={})
 
-	assignments = db.relationship(Assignment, backref='user')
-	shiftTemplates = db.relationship('Template', secondary=user_shiftTemplate, backref='employees')
+	assignments = db.relationship(Assignment, backref='user', cascade='all, delete-orphan')
+	shiftTemplates = db.relationship('Template', secondary=user_shiftTemplate, backref='employees', cascade='all, delete-orphan')
 
 	def toJSON(self):
 		return {'id': self.id, 'name': self.name, 'date_joined': self.date_joined.strftime('%Y-%m-%d-%H%M'),
@@ -76,12 +76,13 @@ class Shift(db.Model):
 	minEmployees = db.Column(db.Integer, nullable=False)
 	day_id = db.Column(db.Integer, db.ForeignKey('day.id'), nullable=False)
 
-	assignments = db.relationship(Assignment, backref='shift')
+	assignments = db.relationship(Assignment, backref='shift', cascade='all, delete-orphan')
 
 	def toJSON(self):
+		assignments_json = db.session.query(Assignment.id, Assignment.assignment_type).filter_by(shift_id=self.id).all()
 		return {'id': self.id, 'name': self.name, 'startTime': self.startTime.strftime('%Y-%m-%d-%H%M'), 'duration': str(self.duration).zfill(4),
 		'maxEmployees': self.maxEmployees, 'minEmployees': self.minEmployees, 'day_id': self.day_id,
-		'assignments': [{'id': assignment.id, 'type': assignment.assignment_type} for assignment in self.assignments]
+		'assignments': [{'id': assignment.id, 'type': assignment.assignment_type} for assignment in assignments_json]
 		}
 
 class Template(db.Model):
