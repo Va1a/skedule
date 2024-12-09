@@ -1,0 +1,18 @@
+{% for assignment in shift.assignments %}
+<tr data-assignment-id="{{ assignment.id }}">
+  <td class="text-center align-middle">{{ assignment.user.external_id }}{{ assignment.render() }}</td>
+  <td class="text-center align-middle">{{ assignment.user.name }}</td>
+  <td class="text-center align-middle">{{ assignment.confirmed }}</td>
+  <td class="text-center align-middle">{{ not assignment.request }}</td>
+  <td class="text-center align-middle">
+    <div class="dropend">
+      <button type="button" class="btn btn-xs btn-outline-primary dropdown-toggle" href="#" id="dropdownMenuLink" data-bs-toggle="dropdown"><span data-feather="edit-3"></span></button>
+      <ul class="dropdown-menu">
+        <li><button class="dropdown-item text-success" onclick=""><span data-feather="check"></span> Approve</button></li>
+        <li><button class="dropdown-item text-danger" onclick=""><span data-feather="trash-2"></span> Delete</button></li>
+        <li><button class="dropdown-item text-primary" onclick=""><span data-feather="user-check"></span> Toggle confirmed</button></li>
+      </ul>
+    </div>
+  </td>
+</tr>
+{% endfor %}

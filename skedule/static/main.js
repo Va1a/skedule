@@ -54,6 +54,30 @@ function updateEndTime(){
   }
 }
 
+let isFormDirty = false;
+
+function performExitConfirmation(){
+    // Monitor form changes
+    document.querySelectorAll("form input, form textarea, form select").forEach((element) => {
+        element.addEventListener("input", () => {
+            isFormDirty = true;
+        });
+    });
+
+    // Add event listener for the beforeunload event
+    window.addEventListener("beforeunload", (event) => {
+        if (isFormDirty) {
+            // Some browsers display this custom message; others show a generic one.
+            event.preventDefault();
+            event.returnValue = ""; // Required for the confirmation dialog to appear.
+        }
+    });
+
+    document.querySelector("form").addEventListener("submit", () => {
+      isFormDirty = false; // Prevent exit confirmation on successful submission
+    });
+}
+
 const searchBar = document.getElementById("searchBar");
 const searchSuggestions = document.getElementById("searchSuggestions");
 
@@ -132,8 +156,12 @@ searchSuggestions.addEventListener("click", function (event) {
     }
 });
 
+let selectedSuggestion = -1;
+
 // Handle "Enter" key event to redirect when "today" or any valid date is typed
 searchBar.addEventListener("keydown", function (event) {
+    const suggestions = Array.from(searchSuggestions.querySelectorAll("li"));
+
     if (event.key === "Enter") {
         const input = searchBar.value.trim().toLowerCase();
 
@@ -141,7 +169,7 @@ searchBar.addEventListener("keydown", function (event) {
         if (input === "today") {
             const today = new Date();
             const todayDate = formatDateWithPadding(today); // Get today's date in YYYY-MM-DD format
-            window.location.href = `schedule?week=${todayDate}`; // Redirect to today's URL with zero-padded date in the correct format
+            window.location.href = `/schedule?week=${todayDate}`; // Redirect to today's URL with zero-padded date in the correct format
         }
         // Check if the input matches a date format (MM/DD/YYYY)
         else {
@@ -151,18 +179,27 @@ searchBar.addEventListener("keydown", function (event) {
                 const day = match[2];
                 const year = match[3];
                 const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // Format to YYYY-MM-DD
-                window.location.href = `schedule?week=${formattedDate}`; // Redirect to formatted URL
+                window.location.href = `/schedule?week=${formattedDate}`; // Redirect to formatted URL
             }
         }
     }
     // Handle "Tab" key to autofill the first suggestion
     if (event.key === "Tab") {
-        const firstSuggestion = searchSuggestions.querySelector("li"); // Get the first suggestion
-        if (firstSuggestion) {
-            event.preventDefault(); // Prevent default tab behavior
-            searchBar.value = firstSuggestion.textContent; // Autofill search bar with first suggestion
-            searchSuggestions.innerHTML = ""; // Clear suggestions
-            searchBar.focus(); // Keep focus on the search bar
+        event.preventDefault(); // Prevent default tab behavior
+
+        if (suggestions.length > 0) {
+            // Increment selectedSuggestion to go down the list
+            selectedSuggestion = (selectedSuggestion + 1) % suggestions.length;
+
+            // Highlight the current suggestion
+            suggestions.forEach((suggestion, index) => {
+                if (index === selectedSuggestion) {
+                    suggestion.classList.add("active"); // Add a class for styling the active suggestion
+                    searchBar.value = suggestion.textContent; // Autofill the search bar with the current suggestion
+                } else {
+                    suggestion.classList.remove("active"); // Remove the active class from others
+                }
+            });
         }
     }
 });

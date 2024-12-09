@@ -16,6 +16,11 @@ def apiShift(shift_id):
 	shift = Shift.query.get_or_404(shift_id)
 	return shift.toJSON()
 
+@api.route('/api/shift/<int:shift_id>/assignment-table')
+def apiShiftAssignmentTable(shift_id):
+	shift = Shift.query.get_or_404(shift_id)
+	return render_template('assignment_table.html', shift=shift)
+
 @api.route('/api/assignment/<int:assignment_id>')
 def apiAssignment(assignment_id):
 	assignment = Assignment.query.get_or_404(assignment_id)
@@ -36,7 +41,7 @@ def apiTemplateName(name):
 	template = Template.query.filter_by(name=name).first_or_404()
 	return template.toJSON()
 
-@api.route('/api/template/list-all')
+@api.route('/api/template/all')
 def apiListTemplate():
 	return {'templates':[{'id': template.id, 'name': template.name} for template in Template.query.all()]}
 
@@ -79,6 +84,28 @@ def apiUpdateAssignment(assignment_id):
 	data = request.json
 	assignment.request = data['request']
 	assignment.confirmed = data['confirmed']
-	assignment.assignment_type = data['assignment_type']
+	db.session.commit()
+	return assignment.toJSON()
+
+@api.route('/api/assignment/<int:assignment_id>/delete', methods=['POST'])
+def apiDeleteAssignment(assignment_id):
+	assignment = Assignment.query.get_or_404(assignment_id)
+	db.session.delete(assignment)	
+	db.session.commit()
+	return {'deleted_id': assignment_id}
+
+@api.route('/api/assignment/create', methods=['POST'])
+def apiCreateAssignment():
+	data = request.json
+	shift = Shift.query.get(data['shift_id'])
+	user = User.query.get(data['user_id'])
+	if not shift or not user:
+		return {'error': 'Shift or user does not exist.'}, 400
+	if Assignment.query.filter_by(user=user, shift=shift).first():
+		return {'error': 'Assignment already exists for given shift-user combination.'}, 400
+
+
+	assignment = Assignment(user=user, shift=shift)
+	db.session.add(assignment)
 	db.session.commit()
 	return assignment.toJSON()

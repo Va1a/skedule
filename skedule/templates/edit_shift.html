@@ -9,7 +9,7 @@
 	</div>
 </div>
 <div class="d-flex" style='gap: 2rem; max-width:100vw; overflow-x: scroll;'>
-	<form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 27.1rem;'>
+	<form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light exit-confirmation' style='max-width: 27.1rem;'>
 	{{ form.hidden_tag() }}
 	<fieldset class='form-group'>
 		<div class='form-group mb-4'>
@@ -167,8 +167,7 @@
 		}
 		async function loadTemplates(){
 			const select = $('#shiftTemplates')[0];
-			const resp = await $.getJSON('/api/template/list-all');
-			console.log(resp.templates);
+			const resp = await $.getJSON('/api/template/all');
 			var hasTemplates = false;
 			for (const template of resp.templates) {
 				hasTemplates = true;
@@ -287,21 +286,21 @@
       	<table class="table table-striped table-bordered table-sm">
 			    <thead>
 			      <tr>
-			        <th class="text-center" scope="col">Employee</th>
-			        <th class="text-center" scope="col">Name</th>
-			        <th class="text-center" scope="col">Confirmed?</th>
-			        <th class="text-center" scope="col">Approved?</th>
-			        <th class="text-center" scope="col">Edit</th>
+			        <th class="text-center align-middle" scope="col">Employee</th>
+			        <th class="text-center align-middle" scope="col">Name</th>
+			        <th class="text-center align-middle" scope="col">Confirmed?</th>
+			        <th class="text-center align-middle" scope="col">Approved?</th>
+			        <th class="text-center align-middle" scope="col">Edit</th>
 			      </tr>
 			    </thead>
 			    <tbody id='assignmentTable'>
 			    	{% for assignment in shift.assignments %}
-			    		<tr>
-			    			<td class="text-center">{{assignment.user.external_id}}{{assignment.render()}}</td>
-			    			<td class="text-center">{{assignment.user.name}}</td>
-			    			<td class="text-center">{{assignment.confirmed}}</td>
-			    			<td class="text-center">{{not assignment.request}}</td>
-			    			<td class="text-center">
+			    		<tr data-assignment-id="{{ assignment.id }}">
+			    			<td class="text-center align-middle">{{assignment.user.external_id}}{{assignment.render()}}</td>
+			    			<td class="text-center align-middle">{{assignment.user.name}}</td>
+			    			<td class="text-center align-middle">{{assignment.confirmed}}</td>
+			    			<td class="text-center align-middle">{{not assignment.request}}</td>
+			    			<td class="text-center align-middle">
 				    			<div class="dropend">
 					    			<button type="button" class="btn btn-xs btn-outline-primary dropdown-toggle" href="#" id="dropdownMenuLink" data-bs-toggle="dropdown"><span data-feather="edit-3"></span></button>
 					    			<ul class="dropdown-menu">
@@ -313,18 +312,62 @@
 							  </td>
 			    		</tr>
 			    	{% endfor %}
-			      {# <tr>
-			        <td><input type="text"></td>
-			        <td><input type="text"></td>
-			        <td><input type="text"></td>
-			        <td>w</td>
-			        <td>t</td>
-			       </tr> #}
 			     </tbody>
 			  </table>
+			  <script>
+			  	async function fetchAssignments() {
+					    $(".dropdown-item").click(function () {
+					        const row = $(this).closest("tr");
+					        const assignmentId = row.data("assignment-id");
+					        const action = $(this).text().trim().toLowerCase();
+
+					        // Prepare API payload based on action
+					        let apiUrl = `/api/assignment/${assignmentId}/update`;
+					        let payload = {
+        	            request: row.find("td:eq(3)").text().trim() === "True" ? false : true, // Approved? False => request=True
+          						confirmed: row.find("td:eq(2)").text().trim() === "True",
+					        };
+
+					        if (action === "approve") {
+					            payload.request = false; // Approve sets request to false
+					        } else if (action === "delete") {
+					            // For deletion, use other endpoint.
+					            $.post(`/api/assignment/${assignmentId}/delete`, {}, function (){
+					            	$.get(`/api/shift/{{ shift.id }}/assignment-table`, function (data) {
+					                    $("#assignmentTable").html(data);
+					                		fetchAssignments(); // So that new rows still perform proper click-events 
+					                		feather.replace(); // Fix feather icons 
+					                });
+					            });
+					            return;
+					        } else if (action === "toggle confirmed") {
+					            payload.confirmed = !payload.confirmed;  // Toggle confirmed status
+					        }
+
+					        // Send API request
+					        $.ajax({
+					            url: apiUrl,
+					            type: "POST",
+					            data: JSON.stringify(payload),
+					            contentType: "application/json",
+					            success: function () {
+					                // Refetch and update table
+					                $.get(`/api/shift/{{ shift.id }}/assignment-table`, function (data) {
+					                    $("#assignmentTable").html(data);
+					                		fetchAssignments(); // So that new rows still perform proper click-events 
+					                		feather.replace(); // Fix feather icons 
+					                });
+					            },
+					            error: function (xhr) {
+					                alert("Error: " + xhr.responseText);
+					            },
+					        });
+					    });
+					}
+			  </script>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="window.location.reload();">Done</button>
       </div>
     </div>
   </div>
