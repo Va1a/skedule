@@ -8,3 +8,4 @@ Scripts/*
 pyenv.cfg
 *.db
 .DS_STORE
+pytest.ini
