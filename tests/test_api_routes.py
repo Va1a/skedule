@@ -9,6 +9,7 @@ from flask_login import login_user
 def app():
     app = create_app()
     app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'Testing'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
     with app.app_context():
         db.create_all()
