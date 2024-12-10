@@ -122,29 +122,6 @@ def editShift(shift_id):
 
 	return render_template('edit_shift.html', shift=shift, shift_id=shift_id, form=form, deleteShiftForm=deleteShiftForm, startDate=date.strftime('%m/%d/%Y'))
 
-@admin.route('/schedule/configure/shift/<int:shift_id>/assign', methods=['POST'])
-@login_required
-def assignShift(shift_id):
-	return 'Hi'
-	empToAdd = [] #form.employees.data.replace(' ', '').split(',')
-	Assignment.query.filter_by(shift_id=shift.id).delete()
-	for emp in empToAdd:
-		if not emp.isdigit():
-			flash('Invalid Employee List!', 'danger')
-			return redirect(url_for('admin.editShift', shift_id=shift.id))
-		employee = User.query.filter_by(external_id=emp).first()
-		if not employee:
-			flash(f'Employee "{emp}" not found!', 'danger')
-			return redirect(url_for('admin.editShift', shift_id=shift.id))
-		assignment = Assignment(user=employee, shift=shift, confirmed=False)
-		db.session.add(assignment)
-		db.session.commit()
-
-@admin.route('/schedule/configure/shift/<int:shift_id>/requests', methods=['POST'])
-@login_required
-def editShiftRequests(shift_id):
-	return 'Not Implemented'
-
 @admin.route('/schedule/configure/shift/<int:shift_id>/delete', methods=['POST'])
 @login_required
 def deleteShift(shift_id):
