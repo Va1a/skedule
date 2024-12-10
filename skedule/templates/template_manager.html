@@ -163,7 +163,7 @@
 		}
 		async function loadTemplates(){
 			const select = $('#shiftTemplates')[0];
-			const resp = await $.getJSON('/api/template/list-all');
+			const resp = await $.getJSON('/api/template/all');
 
 			var hasTemplates = false;
 			for (const template of resp.templates) {

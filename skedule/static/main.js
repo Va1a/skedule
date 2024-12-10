@@ -208,3 +208,15 @@ searchBar.addEventListener("keydown", function (event) {
 searchBar.addEventListener("blur", function () {
     setTimeout(() => (searchSuggestions.innerHTML = ""), 200); // Delay to allow click on suggestion
 });
+
+document.addEventListener("keydown", function (event) {
+    // Check if the pressed key is `/` and no input or textarea is focused
+    if (event.key === "/" && !event.target.matches("input, textarea")) {
+        event.preventDefault(); // Prevent default behavior (e.g., quick find in some browsers)
+        
+        // Focus or open the search bar
+        if (searchBar) {
+            searchBar.focus();
+        }
+    }
+});
