@@ -50,7 +50,7 @@ def defaultExternalId(context):
 
 class User(db.Model, UserMixin):
 	id = db.Column(db.Integer, primary_key=True)
-	oauth_id = db.Column(db.String(512), nullable=False, unique=True, default='')
+	oauth_id = db.Column(db.String(512), nullable=True, unique=True)
 	external_id = db.Column(db.String(256), nullable=False, unique=True, default=defaultExternalId)
 	name = db.Column(db.String(300), nullable=False)
 	email = db.Column(db.String(256), unique=True, nullable=False)

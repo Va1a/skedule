@@ -80,6 +80,12 @@ def schedule():
 			unavail = True
 	return render_template('schedule.html', unavail=unavail, highlight=highlight, weekdays=weekdays, weekOf=weekOf, days=days, owp=oneWeekPrior(weekOf), owl=oneWeekLater(weekOf), hours=[str(i).zfill(4) for i in range(800, 2400, 100)])
 
+@main.route('/roster')
+@login_required
+def roster():
+	users = User.query.all()
+	return render_template('roster.html', users=users)
+
 @main.route('/static/<path:path>')
 def staticFiles(path):
 	return send_from_directory('static', path)
