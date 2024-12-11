@@ -1,4 +1,5 @@
 import pytest
+from test_config import TestConfig
 from skedule import create_app, db, bcrypt
 from skedule.models import User, Shift, Day, Assignment
 from datetime import datetime
@@ -7,10 +8,7 @@ from flask_login import login_user
 
 @pytest.fixture
 def app():
-    app = create_app()
-    app.config['TESTING'] = True
-    app.config['SECRET_KEY'] = 'Testing'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app = create_app(config_class=TestConfig)
     with app.app_context():
         db.create_all()
         yield app
