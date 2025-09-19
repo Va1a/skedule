@@ -1,4 +1,5 @@
 from flask import render_template, send_from_directory, Blueprint, abort, flash, redirect, request, url_for
+from sqlalchemy import and_
 from flask_login import login_user, current_user, logout_user, login_required
 from skedule import db, bcrypt
 from skedule.models import User, Day, Shift, Assignment
@@ -104,6 +105,39 @@ def schedule():
 		else:
 			unavail = True
 	return render_template('schedule.html', unavail=unavail, highlight=highlight, weekdays=weekdays, weekOf=weekOf, days=days, owp=oneWeekPrior(weekOf), owl=oneWeekLater(weekOf), hours=[str(i).zfill(4) for i in range(800, 2400, 100)])
+
+@main.route('/upcoming')
+@login_required
+def upcoming():
+	page = request.args.get('page', 1, type=int)
+	no_pending = request.args.get('no-pending', False, type=bool)
+	per_page = 10
+	
+	# Get user's upcoming shifts (from today onwards, both confirmed and pending)
+	today = getLocalizedTime().date()
+	upcoming_assignments = Assignment.query.join(Shift).join(Day).filter(
+		and_(Assignment.user_id == current_user.id, Assignment.request == False if no_pending else True),
+		Day.date >= today
+	).order_by(Shift.startTime.asc()).paginate(
+		page=page, per_page=per_page, error_out=False
+	)
+	
+	return render_template('upcoming.html', assignments=upcoming_assignments, no_pending=no_pending)
+
+@main.route('/pending-requests')
+@login_required
+def pendingRequests():
+	page = request.args.get('page', 1, type=int)
+	per_page = 10
+	
+	# Get user's pending requests (request=True)
+	pending_assignments = Assignment.query.join(Shift).join(Day).filter(
+		and_(Assignment.user_id == current_user.id, Assignment.request == True)
+	).order_by(Shift.startTime.asc()).paginate(
+		page=page, per_page=per_page, error_out=False
+	)
+	
+	return render_template('pending_requests.html', assignments=pending_assignments)
 
 @main.route('/roster')
 @login_required

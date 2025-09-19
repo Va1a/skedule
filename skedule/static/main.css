@@ -13,6 +13,7 @@ body {
 a, button, .btn, .clickable {
   transition: all 0.3s ease;
   transform-origin: center;
+  text-decoration: none;
 }
 
 a:hover, button:hover, .btn:hover, .clickable:hover {

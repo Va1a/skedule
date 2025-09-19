@@ -14,8 +14,8 @@
 
 <div class="row">
   <div class="col-md-8">
-    <h3>7-Day Overview</h3>
-    <p class="text-muted">Your schedule for the upcoming seven days from today ({{ time.strftime('%B %d, %Y') }})</p>
+    <h3>Week Overview</h3>
+    <p class="text-muted">Your schedule for this week starting from today ({{ time.strftime('%B %d, %Y') }})</p>
     
     <div class="table-responsive">
       <table class="table table-striped table-bordered">
@@ -84,11 +84,13 @@
     <h3>Quick Stats</h3>
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title">Next 7 days</h5>
+        <h5 class="card-title">This Week</h5>
         <div class="row text-center">
           <div class="col-6">
-            <div class="h3 text-success">{{ user_shifts|length }}</div>
-            <small class="text-muted">Your Shifts</small>
+            <a href="{{ url_for('main.upcoming') }}">
+              <div class="h3 text-success">{{ user_shifts|length }}</div>
+              <small class="text-muted">Your Shifts</small>
+            </a>
           </div>
           <div class="col-6">
             <div class="h3 text-primary">{{ total_shifts }}</div>
@@ -97,23 +99,29 @@
         </div>
         <hr>
         <div class="row text-center">
-          <div class="col-6">
-            {% set requests = user_shifts | selectattr('assignment.request', 'equalto', True) | list | length %}
-            <div class="h4 text-warning">{{ requests }}</div>
-            <small class="text-muted">Pending Requests</small>
-          </div>
+          
+            <div class="col-6">
+              {% set requests = user_shifts | selectattr('assignment.request', 'equalto', True) | list | length %}
+              <a href="{{ url_for('main.pendingRequests') }}">
+                <div class="h4 text-warning">{{ requests }}</div>
+                <small class="text-muted">Pending Requests</small>
+              </a>
+            </div>
+          </a>
           <div class="col-6">
             {% set confirmed = user_shifts | selectattr('assignment.request', 'equalto', False) | list | length %}
-            <div class="h4 text-success">{{ confirmed }}</div>
-            <small class="text-muted">Confirmed</small>
+            <a href="{{ url_for('main.upcoming') }}">
+              <div class="h4 text-success">{{ confirmed }}</div>
+              <small class="text-muted">Confirmed</small>
+            </a>
           </div>
         </div>
       </div>
     </div>
-    
+        
     {% if user_shifts %}
     <div class="mt-4">
-      <h4>Upcoming Shifts</h4>
+      <h4>Next 3 Shifts</h4>
       <div class="list-group">
         {% for user_shift in user_shifts[:3] %}
         <a href="{{ url_for('main.viewShift', shift_id=user_shift.shift.id) }}" class="list-group-item list-group-item-action hover-lift">
@@ -133,7 +141,7 @@
         {% endfor %}
         {% if user_shifts|length > 3 %}
         <div class="list-group-item text-center">
-          <small class="text-muted">{{ user_shifts|length - 3 }} more upcoming shift{{ 's' if user_shifts|length - 3 > 1 else '' }} in the next 7 days...</small>
+          <a href="{{ url_for('main.upcoming') }}" class="hover-lift">          <small class="text-muted">{{ user_shifts|length - 3 }} more shift{{ 's' if user_shifts|length - 3 > 1 else '' }} this week...</small></a>
         </div>
         {% endif %}
       </div>

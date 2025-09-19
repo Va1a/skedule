@@ -1,0 +1,210 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Upcoming Shifts</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+      <a href="{{ url_for('main.home') }}" class="btn btn-sm btn-outline-secondary">
+        <span data-feather="home" class="align-text-bottom"></span>
+        Dashboard
+      </a>
+    </div>
+    <div class="btn-group">
+      {% if not no_pending %}
+      <a href="/upcoming?no-pending=true" class="btn btn-sm btn-outline-secondary">
+        <span data-feather="eye-off" class="align-text-bottom"></span>
+        Hide Pending Requests
+      </a>
+      {% else %}
+      <a href="/upcoming" class="btn btn-sm btn-outline-secondary">
+        <span data-feather="eye" class="align-text-bottom"></span>
+        Show Pending Requests
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if assignments.items %}
+<div class="alert alert-info" role="alert">
+<span data-feather="info" class="align-text-bottom me-2"></span>
+You have {{ assignments.total }} upcoming shifts scheduled from today onwards.
+{% if no_pending %} This does not include your pending shift requests.{% endif %}
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped table-bordered table-hover">
+    <thead class="table">
+      <tr>
+        <th scope="col" class="text-center">Date</th>
+        <th scope="col" class="text-center">Day</th>
+        <th scope="col" class="text-center">Shift Name</th>
+        <th scope="col" class="text-center">Start Time</th>
+        <th scope="col" class="text-center">Duration</th>
+        <th scope="col" class="text-center">Status</th>
+        <th scope="col" class="text-center">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for assignment in assignments.items %}
+      <tr class="{% if assignment.request %}table-warning{% else %}table-success{% endif %}">
+        <td class="text-center align-middle">
+          {{ assignment.shift.startTime.strftime('%m/%d/%Y') }}
+        </td>
+        <td class="text-center align-middle fw-bold">
+          {{ assignment.shift.startTime.strftime('%A') }}
+        </td>
+        <td class="text-center align-middle">
+          <strong>{{ assignment.shift.name }}</strong>
+        </td>
+        <td class="text-center align-middle">
+          {{ assignment.shift.startTime.strftime('%I:%M %p').lstrip('0') }}
+        </td>
+        <td class="text-center align-middle">
+          {{ (assignment.shift.duration // 100) }}h {{ (assignment.shift.duration % 100) }}m
+        </td>
+        <td class="text-center align-middle">
+          {% if assignment.request %}
+            <span class="badge bg-warning text-dark">
+              Pending Request
+            </span>
+          {% else %}
+            <span class="badge bg-success">
+              Confirmed
+            </span>
+          {% endif %}
+          {% if not assignment.confirmed %}
+            <span class="badge bg-info text-dark ms-1">
+              Awaiting Confirmation
+            </span>
+          {% endif %}
+        </td>
+        <td class="text-center align-middle">
+          <a href="{{ url_for('main.viewShift', shift_id=assignment.shift.id) }}" 
+             class="btn btn-sm btn-outline-primary me-2" 
+             data-bs-toggle="tooltip" 
+             title="View shift details">
+            <span data-feather="eye" class="align-text-bottom"></span>
+            View
+          </a>
+          {% if assignment.request %}
+          <button type="button" 
+                  class="btn btn-sm btn-outline-danger" 
+                  onclick="showCancelModal({{ assignment.shift.id }}, '{{ assignment.shift.name }}', '{{ assignment.shift.startTime.strftime('%A, %B %d, %Y at %I:%M %p').replace(' 0', ' ') }}')" 
+                  title="Cancel pending request">
+            <span data-feather="x-circle" class="align-text-bottom"></span>
+            Cancel
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination -->
+{% if assignments.pages > 1 %}
+<nav aria-label="Upcoming shifts pagination">
+  <ul class="pagination justify-content-center">
+    {% if assignments.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('main.upcoming', page=assignments.prev_num) }}">
+          <span data-feather="chevron-left" class="align-text-bottom"></span>
+          Previous
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">
+          <span data-feather="chevron-left" class="align-text-bottom"></span>
+          Previous
+        </span>
+      </li>
+    {% endif %}
+    
+    {% for page_num in assignments.iter_pages() %}
+      {% if page_num %}
+        {% if page_num != assignments.page %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('main.upcoming', page=page_num) }}">{{ page_num }}</a>
+          </li>
+        {% else %}
+          <li class="page-item active">
+            <span class="page-link">{{ page_num }}</span>
+          </li>
+        {% endif %}
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">...</span>
+        </li>
+      {% endif %}
+    {% endfor %}
+    
+    {% if assignments.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('main.upcoming', page=assignments.next_num) }}">
+          Next
+          <span data-feather="chevron-right" class="align-text-bottom"></span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">
+          Next
+          <span data-feather="chevron-right" class="align-text-bottom"></span>
+        </span>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-5">
+  <div class="mb-4">
+    <span data-feather="calendar" style="width: 64px; height: 64px; color: #6c757d;"></span>
+  </div>
+  <h3 class="text-muted">No Upcoming Shifts</h3>
+  <p class="text-muted">You don't have any upcoming shifts scheduled.</p>
+</div>
+{% endif %}
+
+<!-- Cancel Confirmation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cancelModalLabel">Cancel Shift Request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to cancel your request for:</p>
+        <strong id="shiftName"></strong><br>
+        <small class="text-muted" id="shiftDateTime"></small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Request</button>
+        <form id="cancelForm" method="POST" class="d-inline">
+          <button type="submit" class="btn btn-danger">
+            <span data-feather="x-circle" class="align-text-bottom me-1"></span>
+            Cancel Request
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showCancelModal(shiftId, shiftName, shiftDateTime) {
+  document.getElementById('shiftName').textContent = shiftName;
+  document.getElementById('shiftDateTime').textContent = shiftDateTime;
+  document.getElementById('cancelForm').action = '/remove-shift-request/' + shiftId;
+  
+  const modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+  modal.show();
+}
+</script>
+
+{% endblock %}
