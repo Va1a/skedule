@@ -84,9 +84,9 @@
   <div class="navbar-nav">
     <div class="nav-item text-nowrap">
       {% if current_user.is_authenticated %}
-      <span class="px-3 nav-link">{{ current_user.name }} - <a class="text-danger" href="{{ url_for('users.logout')}}">Logout</a></span>
+      <span class="px-3 nav-link">{{ current_user.name }} - <a class="text-danger hover-lift" href="{{ url_for('users.logout')}}">Logout</a></span>
       {% else %}
-      <a class="nav-link px-3 text-success" href="{{ url_for('users.login')}}">Login</a>
+      <a class="nav-link px-3 text-success hover-lift" href="{{ url_for('users.login')}}">Login</a>
       {% endif %}
     </div>
   </div>
@@ -190,7 +190,7 @@
       </div>
     </nav>
 
-    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}

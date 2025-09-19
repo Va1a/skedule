@@ -46,13 +46,10 @@ class Assignment(db.Model):
 		'confirmed': self.confirmed, 'assignment_type': self.assignment_type, 'suffix': self.render(),
 		'color': self.colorize(), 'date_created': self.date_created.strftime('%Y-%m-%d-%H%M')}
 
-def defaultExternalId(context):
-	return str(uuid.uuid4())
-
 class User(db.Model, UserMixin):
 	id = db.Column(db.Integer, primary_key=True)
 	oauth_id = db.Column(db.String(512), nullable=True, unique=True)
-	external_id = db.Column(db.String(256), nullable=False, unique=True, default=defaultExternalId)
+	_external_id = db.Column(db.String(256), nullable=True, unique=True)
 	name = db.Column(db.String(300), nullable=False)
 	email = db.Column(db.String(256), unique=True, nullable=False)
 	phone = db.Column(db.String(20), nullable=False)
@@ -62,6 +59,11 @@ class User(db.Model, UserMixin):
 
 	assignments = db.relationship(Assignment, backref='user', cascade='all, delete-orphan')
 	shiftTemplates = db.relationship('Template', secondary=user_shiftTemplate, backref='employees', cascade='all')
+
+	@property
+	def external_id(self):
+		return self._external_id if self._external_id else self.id
+	
 
 	def toJSON(self):
 		return {'id': self.id, 'name': self.name, 'date_joined': self.date_joined.strftime('%Y-%m-%d-%H%M'),

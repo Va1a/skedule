@@ -3,148 +3,145 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
   <h1 class="h2">Dashboard</h1>
   <div class="btn-toolbar mb-2 mb-md-0">
-    <div class="btn-group me-2">
-      <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+    <div class="btn-group">
+      <a href="{{ url_for('main.schedule') }}" class="btn btn-sm btn-outline-secondary">
+        <span data-feather="calendar" class="align-text-bottom"></span>
+        Full Schedule
+      </a>
     </div>
-    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
-      <span data-feather="calendar" class="align-text-bottom"></span>
-      This week
-    </button>
   </div>
 </div>
 
-<!-- <canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas> -->
-<h2>Upcoming Shifts</h2><small>Schedule more shifts using the <a href="/schedule">schedule</a>.</small>
-<div class="table-responsive">
-  <table class="table table-striped table-bordered table-sm">
-    <thead>
-      <tr>
-        <th scope="col">Time</th>
-        {% for day in weekdays %}
-        <th scope="col">{{ day['name'] }} ({{ day['date'] }})</th>
+<div class="row">
+  <div class="col-md-8">
+    <h3>7-Day Overview</h3>
+    <p class="text-muted">Your schedule for the upcoming seven days from today ({{ time.strftime('%B %d, %Y') }})</p>
+    
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th scope="col" class="text-center">Day</th>
+            <th scope="col" class="text-center">Date</th>
+            <th scope="col" class="text-center">Your Shifts</th>
+            <th scope="col" class="text-center">All Shifts</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for i in range(weekdays|length) %}
+          {% set day = days[i] %}
+          {% set weekday = weekdays[i] %}
+          <tr class="{% if day and day.shifts %}schedule-available{% else %}schedule-unavailable{% endif %}">
+            <td class="text-center align-middle fw-bold">{{ weekday['name'] }}</td>
+            <td class="text-center align-middle">{{ weekday['date'] }}</td>
+            <td class="text-center align-middle">
+              {% if day and day.shifts %}
+                {% set user_day_shifts = user_shifts | selectattr('day_name', 'equalto', weekday['name']) | list %}
+                {% if user_day_shifts %}
+                  {% for user_shift in user_day_shifts %}
+                    <a href="{{ url_for('main.viewShift', shift_id=user_shift.shift.id) }}" 
+                       class="btn btn-sm btn-success me-1 mb-1 shift-btn" 
+                       data-bs-toggle="tooltip" 
+                       title="{{ user_shift.shift.name }} - {{ user_shift.shift.startTime.strftime('%H:%M') }}{% if user_shift.assignment.request %} (Requested){% endif %}">
+                      <span data-feather="user-check" class="align-text-bottom"></span>
+                      {{ user_shift.shift.name }}
+                      {% if user_shift.assignment.request %}
+                        <span class="badge bg-warning text-dark ms-1">REQ</span>
+                      {% endif %}
+                    </a>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted">No shifts assigned</span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">No shifts scheduled</span>
+              {% endif %}
+            </td>
+            <td class="text-center align-middle">
+              {% if day and day.shifts %}
+                <div class="d-flex flex-wrap justify-content-center gap-1">
+                  {% for shift in day.shifts %}
+                    <a href="{{ url_for('main.viewShift', shift_id=shift.id) }}" 
+                       class="btn btn-xs {% if shift.id in user_shift_ids %}btn-success{% else %}btn-outline-secondary{% endif %} shift-btn" 
+                       data-bs-toggle="tooltip" 
+                       title="{{ shift.name }} - {{ shift.startTime.strftime('%H:%M') }} ({{ shift.assignments|length }}/{{ shift.maxEmployees }})">
+                      {{ shift.name }}
+                    </a>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+          </tr>
         {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>0800</td>
-        {% for day in range(1) %}
-        <td>random</td>
-        <td>data</td>
-        <td>placeholder</td>
-        <td>text</td>
-        <td>data</td>
-        <td>placeholder</td>
-        <td>text</td>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <h3>Quick Stats</h3>
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Next 7 days</h5>
+        <div class="row text-center">
+          <div class="col-6">
+            <div class="h3 text-success">{{ user_shifts|length }}</div>
+            <small class="text-muted">Your Shifts</small>
+          </div>
+          <div class="col-6">
+            <div class="h3 text-primary">{{ total_shifts }}</div>
+            <small class="text-muted">Total Shifts</small>
+          </div>
+        </div>
+        <hr>
+        <div class="row text-center">
+          <div class="col-6">
+            {% set requests = user_shifts | selectattr('assignment.request', 'equalto', True) | list | length %}
+            <div class="h4 text-warning">{{ requests }}</div>
+            <small class="text-muted">Pending Requests</small>
+          </div>
+          <div class="col-6">
+            {% set confirmed = user_shifts | selectattr('assignment.request', 'equalto', False) | list | length %}
+            <div class="h4 text-success">{{ confirmed }}</div>
+            <small class="text-muted">Confirmed</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    {% if user_shifts %}
+    <div class="mt-4">
+      <h4>Upcoming Shifts</h4>
+      <div class="list-group">
+        {% for user_shift in user_shifts[:3] %}
+        <a href="{{ url_for('main.viewShift', shift_id=user_shift.shift.id) }}" class="list-group-item list-group-item-action hover-lift">
+          <div class="d-flex w-100 justify-content-between">
+            <h6 class="mb-1">{{ user_shift.shift.name }}</h6>
+            <small>{{ user_shift.date }}</small>
+          </div>
+          <p class="mb-1">{{ user_shift.day_name }} @ {{ user_shift.time }}</p>
+          <small>
+            {% if user_shift.assignment.request %}
+              <span class="badge bg-warning text-dark">Requested</span>
+            {% else %}
+              <span class="badge bg-success">Confirmed</span>
+            {% endif %}
+          </small>
+        </a>
         {% endfor %}
-      </tr>
-      <tr>
-        <td>0900</td>
-        <td>placeholder</td>
-        <td>irrelevant</td>
-        <td>visual</td>
-        <td>layout</td>
-      </tr>
-      <tr>
-        <td>1000</td>
-        <td>data</td>
-        <td>rich</td>
-        <td>dashboard</td>
-        <td>tabular</td>
-      </tr>
-      <tr>
-        <td>1100</td>
-        <td>information</td>
-        <td>placeholder</td>
-        <td>illustrative</td>
-        <td>data</td>
-      </tr>
-      <tr>
-        <td>1200</td>
-        <td>text</td>
-        <td>random</td>
-        <td>layout</td>
-        <td>dashboard</td>
-      </tr>
-      <tr>
-        <td>1300</td>
-        <td>dashboard</td>
-        <td>irrelevant</td>
-        <td>text</td>
-        <td>placeholder</td>
-      </tr>
-      <tr>
-        <td>1400</td>
-        <td>dashboard</td>
-        <td>illustrative</td>
-        <td>rich</td>
-        <td>data</td>
-      </tr>
-      <tr>
-        <td>1500</td>
-        <td>placeholder</td>
-        <td>tabular</td>
-        <td>information</td>
-        <td>irrelevant</td>
-      </tr>
-      <tr>
-        <td>1600</td>
-        <td>random</td>
-        <td>data</td>
-        <td>placeholder</td>
-        <td>text</td>
-      </tr>
-      <tr>
-        <td>1700</td>
-        <td>placeholder</td>
-        <td>irrelevant</td>
-        <td>visual</td>
-        <td>layout</td>
-      </tr>
-      <tr>
-        <td>1800</td>
-        <td>data</td>
-        <td>rich</td>
-        <td>dashboard</td>
-        <td>tabular</td>
-      </tr>
-      <tr>
-        <td>1900</td>
-        <td>information</td>
-        <td>placeholder</td>
-        <td>illustrative</td>
-        <td>data</td>
-      </tr>
-      <tr>
-        <td>2000</td>
-        <td>text</td>
-        <td>placeholder</td>
-        <td>layout</td>
-        <td>dashboard</td>
-      </tr>
-      <tr>
-        <td>2100</td>
-        <td>dashboard</td>
-        <td>irrelevant</td>
-        <td>text</td>
-        <td>visual</td>
-      </tr>
-      <tr>
-        <td>2200</td>
-        <td>dashboard</td>
-        <td>illustrative</td>
-        <td>rich</td>
-        <td>data</td>
-      </tr>
-      <tr>
-        <td>2300</td>
-        <td>random</td>
-        <td>tabular</td>
-        <td>information</td>
-        <td>text</td>
-      </tr>
-    </tbody>
-  </table>
+        {% if user_shifts|length > 3 %}
+        <div class="list-group-item text-center">
+          <small class="text-muted">{{ user_shifts|length - 3 }} more upcoming shift{{ 's' if user_shifts|length - 3 > 1 else '' }} in the next 7 days...</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </div>
+
+
+
 {% endblock %}

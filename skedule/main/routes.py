@@ -9,14 +9,39 @@ main = Blueprint('main', __name__)
 @main.route('/')
 @login_required
 def home():
-	# shifts = Shift.query.filter(employee == current_user and start_datetime > getLocalizedTime() and start_datetime < getWeek(getLocalizedTime()))
-	weekdays = [{'name': getDayName(day.weekday()), 'date': day.strftime('%m/%d')} for day in getWeek(getLocalizedTime())]
-	days = []
-	for day in getWeek(getLocalizedTime()):
-		days.append(Day.query.filter_by(date=day.date()))
-
+	current_week = getWeek(getLocalizedTime())
+	weekdays = [{'name': getDayName(day.weekday()), 'date': day.strftime('%m/%d')} for day in current_week]
+	start_date = current_week[0].date()
+	end_date = current_week[-1].date()
 	
-	return render_template('dashboard.html', time=getLocalizedTime(), weekdays=weekdays, days=days)
+	# Get all days for the week in one query
+	days_dict = {day.date: day for day in Day.query.filter(Day.date.between(start_date, end_date)).all()}
+	days = [days_dict.get(d.date()) for d in current_week]
+	
+	# Get all user assignments for the week in one efficient query
+	user_assignments = Assignment.query.join(Shift).join(Day).filter(
+		Assignment.user_id == current_user.id,
+		Day.date.between(start_date, end_date)
+	).all()
+	
+	user_shifts = []
+	user_shift_ids = set()
+	for ua in user_assignments:
+		day_dt = ua.shift.day.date
+		user_shift_ids.add(ua.shift.id)
+		user_shifts.append({
+			'shift': ua.shift,
+			'assignment': ua,
+			'day_name': getDayName(day_dt.weekday()),
+			'date': day_dt.strftime('%m/%d'),
+			'time': ua.shift.startTime.strftime('%-I:%M %p')
+		})
+	
+	# Calculate total shifts for the week
+	total_shifts = sum(len(day.shifts) if day else 0 for day in days)
+	
+	return render_template('dashboard.html', time=getLocalizedTime(), weekdays=weekdays, days=days, 
+						 user_shifts=user_shifts, user_shift_ids=user_shift_ids, total_shifts=total_shifts)
 
 @main.route('/schedule/shift/<int:shift_id>')
 @login_required

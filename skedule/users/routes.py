@@ -31,7 +31,7 @@ def login():
 		if user and bcrypt.check_password_hash(user.password, form.password.data):
 			login_user(user, remember=form.remember.data)
 			nextpage = request.args.get('next')
-			flash(f'Logged in as EMP {user.external_id}.', 'success')
+			flash(f'Logged in as {user.name} ({user.external_id})', 'success')
 			return redirect(nextpage) if nextpage else redirect(url_for('main.home'))
 		else:
 			flash('Invalid credentials.', 'danger')
