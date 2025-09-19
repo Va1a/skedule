@@ -13,7 +13,7 @@ def register():
 	form = RegisterForm()
 	if form.validate_on_submit():
 		hashedpw = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-		user = User(external_id=form.external_id.data, name=form.name.data, email=form.email.data, phone=form.phone.data, password=hashedpw)
+		user = User(name=form.name.data, email=form.email.data, phone=form.phone.data, password=hashedpw)
 		db.session.add(user)
 		db.session.commit()
 		flash(f'Account created, you may now log in.', 'success')

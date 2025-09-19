@@ -84,7 +84,7 @@
   <div class="navbar-nav">
     <div class="nav-item text-nowrap">
       {% if current_user.is_authenticated %}
-      <span class="px-3 nav-link">EMP{{ current_user.external_id }} - <a class="text-danger" href="{{ url_for('users.logout')}}">Logout</a></span>
+      <span class="px-3 nav-link">{{ current_user.name }} - <a class="text-danger" href="{{ url_for('users.logout')}}">Logout</a></span>
       {% else %}
       <a class="nav-link px-3 text-success" href="{{ url_for('users.login')}}">Login</a>
       {% endif %}

@@ -3,6 +3,7 @@ from flask import current_app
 from skedule.utils import getLocalizedTime
 from flask_login import UserMixin
 import json
+import uuid
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -46,7 +47,7 @@ class Assignment(db.Model):
 		'color': self.colorize(), 'date_created': self.date_created.strftime('%Y-%m-%d-%H%M')}
 
 def defaultExternalId(context):
-	return context.get_current_parameters()['id']
+	return str(uuid.uuid4())
 
 class User(db.Model, UserMixin):
 	id = db.Column(db.Integer, primary_key=True)
@@ -54,7 +55,7 @@ class User(db.Model, UserMixin):
 	external_id = db.Column(db.String(256), nullable=False, unique=True, default=defaultExternalId)
 	name = db.Column(db.String(300), nullable=False)
 	email = db.Column(db.String(256), unique=True, nullable=False)
-	phone = db.Column(db.Integer, nullable=False)
+	phone = db.Column(db.String(20), nullable=False)
 	date_joined = db.Column(db.DateTime, nullable=False, default=getLocalizedTime)
 	password = db.Column(db.String(60), nullable=False)
 	meta = db.Column(db.JSON, nullable=False, default={})

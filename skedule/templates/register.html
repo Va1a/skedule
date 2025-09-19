@@ -1,112 +1,124 @@
-{% extends 'layout.html' %}
-{% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-	<h1 class="h2">Register a New Account</h1>
-</div>
-<form method='POST' action='' class='d-flex flex-column px-3 pt-3 pb-3 border bg-light' style='max-width: 35rem;'>
-{{ form.hidden_tag() }}
-<fieldset class='form-group'>
-	<div class='form-group'>
-		{{ form.external_id.label(class='form-control-label mb-2') }}
-		
-		{% if form.external_id.errors %}
-			{{ form.external_id(class='form-control form-control-lg is-invalid mb-4', style='max-width: 5rem;', placeholder='01') }}
-			<div class='invalid-feedback'>
-				{% for error in form.external_id.errors %}
-				<span>{{ error }}</span>
-				{% endfor %}
-			</div>
-		{% else %}
-		{{ form.external_id(class='form-control form-control-lg mb-4', style='max-width: 5rem;', placeholder='01') }}
-		{% endif %}
-	</div>
-	<div class='form-group'>
-		{{ form.name.label(class='form-control-label mb-2') }}
-		
-		{% if form.name.errors %}
-			{{ form.name(class='form-control form-control-lg is-invalid mb-4', placeholder='John Doe') }}
-			<div class='invalid-feedback'>
-				{% for error in form.name.errors %}
-				<span>{{ error }}</span>
-				{% endfor %}
-			</div>
-		{% else %}
-		{{ form.name(class='form-control form-control-lg mb-4', maxlength='300', placeholder='John Doe') }}
-		{% endif %}
-	</div>
-	<div class='form-group'>
-		{{ form.email.label(class='form-control-label mb-2') }}
-		
-		{% if form.email.errors %}
-			{{ form.email(class='form-control form-control-lg is-invalid mb-4', placeholder='jdoe@ucsb.edu') }}
-			<div class='invalid-feedback'>
-				{% for error in form.email.errors %}
-				<span>{{ error }}</span>
-				{% endfor %}
-			</div>
-		{% else %}
-		{{ form.email(class='form-control form-control-lg mb-4', maxlength='256', placeholder='jdoe@ucsb.edu') }}
-		{% endif %}
-	</div>
-	<div class='form-group'>
-		{{ form.phone.label(class='form-control-label mb-2') }}
-		
-		{% if form.phone.errors %}
-			{{ form.phone(class='form-control form-control-lg is-invalid mb-4', placeholder='805-893-2000') }}
-			<div class='invalid-feedback'>
-				{% for error in form.phone.errors %}
-				<span>{{ error }}</span>
-				{% endfor %}
-			</div>
-		{% else %}
-		{{ form.phone(class='form-control form-control-lg mb-4', maxlength='20', placeholder='805-893-2000') }}
-		{% endif %}
-	</div>
-	<div class='form-group'>
-		{{ form.password.label(class='form-control-label mb-2') }}
-		{% if form.password.errors %}
-			{{ form.password(class='form-control form-control-lg is-invalid mb-2') }}
-			<div class='invalid-feedback'>
-				{% for error in form.password.errors %}
-				<span>{{ error }}</span>
-				{% endfor %}
-			</div>
-		{% else %}
-		{{ form.password(class='form-control form-control-lg mb-4', style='') }}
-		{% endif %}
-	</div>
-	<div class='form-group'>
-		{{ form.confirm.label(class='form-control-label mb-2') }}
-		{% if form.confirm.errors %}
-			{{ form.confirm(class='form-control form-control-lg is-invalid mb-2') }}
-			<div class='invalid-feedback'>
-				{% for error in form.confirm.errors %}
-				<span>{{ error }}</span>
-				{% endfor %}
-			</div>
-		{% else %}
-		{{ form.confirm(class='form-control form-control-lg mb-4', style='') }}
-		{% endif %}
-	</div>
-{#	<div class="form-group">
-		{{ form.recaptcha.label(class='form-control-label') }}
-		{% if form.recaptcha.errors %}
-			{{ form.recaptcha }}
-			<div style='font-size: 80%; color: #dc3545;'>
-				{% for error in form.recaptcha.errors %}
-				<span>{{ error }}</span>
-				{% endfor %}
-			</div>
-		{% else %}
-		{{ form.recaptcha }}
-		{% endif %}
-	</div> #}
-</fieldset>
-<div class='d-flex flex-wrap flex-md-nowrap align-items-center form-group'>
-	{{ form.submit(class='btn btn-primary') }}
-	<small class="px-2">Already have an account? <a href="{{url_for('users.login')}}">Log In</a>.</small>
-</div>
-</form>
-</div>
-
-{% endblock %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>Skedule - Register</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='auth.css') }}" rel="stylesheet">
+  </head>
+  
+  <body>
+    <div class="auth-overlay">
+      <div class="auth-modal register">
+        <div class="auth-header register">
+          <h1><span class="gold">SKEDULE</span></h1>
+          <p class="subtitle">Create your account to get started.</p>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+            <div class='alert alert-{{ category }} alert-dismissible fade show' role='alert'>
+              {{ message }} 
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        
+        <form method='POST' action='' id="registerForm">
+          {{ form.hidden_tag() }}
+          
+          
+          <div class="form-floating">
+            {% if form.name.errors %}
+              {{ form.name(class='form-control is-invalid', maxlength='300', id='nameInput', placeholder='John Doe') }}
+              <label for="nameInput">Full Name</label>
+              <div class='invalid-feedback'>
+                {% for error in form.name.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% else %}
+              {{ form.name(class='form-control', maxlength='300', id='nameInput', placeholder='John Doe') }}
+              <label for="nameInput">Full Name</label>
+            {% endif %}
+          </div>
+          
+          <div class="form-floating">
+            {% if form.email.errors %}
+              {{ form.email(class='form-control is-invalid', maxlength='256', id='emailInput', placeholder='jdoe@ucsb.edu') }}
+              <label for="emailInput">Email address</label>
+              <div class='invalid-feedback'>
+                {% for error in form.email.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% else %}
+              {{ form.email(class='form-control', maxlength='256', id='emailInput', placeholder='jdoe@ucsb.edu') }}
+              <label for="emailInput">Email address</label>
+            {% endif %}
+          </div>
+          
+          <div class="form-floating">
+            {% if form.phone.errors %}
+              {{ form.phone(class='form-control is-invalid', maxlength='20', id='phoneInput', placeholder='805-893-2000') }}
+              <label for="phoneInput">Phone Number</label>
+              <div class='invalid-feedback'>
+                {% for error in form.phone.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% else %}
+              {{ form.phone(class='form-control', maxlength='20', id='phoneInput', placeholder='805-893-2000') }}
+              <label for="phoneInput">Phone Number</label>
+            {% endif %}
+          </div>
+          
+          <div class="form-floating">
+            {% if form.password.errors %}
+              {{ form.password(class='form-control is-invalid', id='passwordInput', placeholder='Password') }}
+              <label for="passwordInput">Password</label>
+              <div class='invalid-feedback'>
+                {% for error in form.password.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% else %}
+              {{ form.password(class='form-control', id='passwordInput', placeholder='Password') }}
+              <label for="passwordInput">Password</label>
+            {% endif %}
+          </div>
+          
+          <div class="form-floating">
+            {% if form.confirm.errors %}
+              {{ form.confirm(class='form-control is-invalid', id='confirmInput', placeholder='Confirm Password') }}
+              <label for="confirmInput">Confirm Password</label>
+              <div class='invalid-feedback'>
+                {% for error in form.confirm.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% else %}
+              {{ form.confirm(class='form-control', id='confirmInput', placeholder='Confirm Password') }}
+              <label for="confirmInput">Confirm Password</label>
+            {% endif %}
+          </div>
+          
+          {{ form.submit(class='btn btn-auth', id='registerButton') }}
+          
+          <div class="auth-link">
+            Already have an account? <a href="{{url_for('users.login')}}">Sign in here</a>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='auth.js') }}"></script>
+  </body>
+</html>
