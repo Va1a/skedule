@@ -9,6 +9,7 @@ from skedule import db, login_manager
 def load_user(user_id):
 	return db.session.get(User, int(user_id))
 
+
 user_shiftTemplate = db.Table('user_shiftTemplate',
 	db.Column('user_id', db.Integer, db.ForeignKey('user.id', ondelete='CASCADE')),
 	db.Column('template_id', db.Integer, db.ForeignKey('template.id', ondelete='CASCADE'))

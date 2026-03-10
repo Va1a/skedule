@@ -16,7 +16,7 @@ def register():
 		user = User(name=form.name.data, email=form.email.data, phone=form.phone.data, password=hashedpw)
 		db.session.add(user)
 		db.session.commit()
-		flash(f'Account created, you may now log in.', 'success')
+		flash('Account created, you may now log in.', 'success')
 		return redirect(url_for('users.login'))
 	return render_template('register.html', form=form)
 

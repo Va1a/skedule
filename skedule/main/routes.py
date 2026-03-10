@@ -51,8 +51,15 @@ def home():
 	# Calculate total shifts for the week
 	total_shifts = sum(len(day.shifts) if day else 0 for day in days)
 	
-	return render_template('dashboard.html', time=getLocalizedTime(), weekdays=weekdays, days=days, 
-						 user_shifts=user_shifts, user_shift_ids=user_shift_ids, total_shifts=total_shifts)
+	return render_template(
+		'dashboard.html',
+		time=getLocalizedTime(),
+		weekdays=weekdays,
+		days=days,
+		user_shifts=user_shifts,
+		user_shift_ids=user_shift_ids,
+		total_shifts=total_shifts,
+	)
 
 @main.route('/schedule/shift/<int:shift_id>')
 @login_required

@@ -7,22 +7,21 @@ from skedule.utils import getLocalizedTime, getWeek, getDayName, daysOfCalendarW
 
 admin = Blueprint('admin', __name__)
 
-@admin.route('/schedule/configure', methods=['GET', 'POST'])
-@login_required
-def configureSchedule():
-	newWeekScheduleForm = NewWeekScheduleForm()
-	deleteWeekScheduleForm = DeleteWeekScheduleForm()
-	unavail = False
-	inputWeekOf = request.args.get('week')
+
+def getCalendarWeek(inputWeekOf):
 	if inputWeekOf:
 		weekOf = ymdToDateTime(inputWeekOf)
-		if not weekOf: abort(404)
-		calendarWeek = daysOfCalendarWeek(weekOf)
-	else:
-		calendarWeek = daysOfCalendarWeek(getLocalizedTime())
-	weekOf = calendarWeek[0]
+		if not weekOf:
+			abort(404)
+		return daysOfCalendarWeek(weekOf)
+	return daysOfCalendarWeek(getLocalizedTime())
+
+
+def getWeekScheduleData(calendarWeek):
 	weekdays = [{'name': getDayName(day.weekday()), 'date': day.strftime('%m/%d')} for day in calendarWeek]
 	days = []
+	unavail = False
+
 	for day in calendarWeek:
 		dayRow = Day.query.filter_by(date=day.date()).first()
 		if dayRow:
@@ -30,24 +29,44 @@ def configureSchedule():
 		else:
 			unavail = True
 
+	return weekdays, days, unavail
+
+
+def createWeekSchedule(calendarWeek):
+	for day in calendarWeek:
+		dayRow = Day.query.filter_by(date=day.date()).first()
+		if not dayRow:
+			newDay = Day(name=day.date().strftime('%m/%d/%Y'), date=day.date())
+			db.session.add(newDay)
+	db.session.commit()
+
+
+def deleteWeekSchedule(calendarWeek):
+	for day in calendarWeek:
+		dayRow = Day.query.filter_by(date=day.date()).first()
+		if dayRow:
+			for shift in dayRow.shifts:
+				db.session.delete(shift)
+			db.session.delete(dayRow)
+	db.session.commit()
+
+
+@admin.route('/schedule/configure', methods=['GET', 'POST'])
+@login_required
+def configureSchedule():
+	newWeekScheduleForm = NewWeekScheduleForm()
+	deleteWeekScheduleForm = DeleteWeekScheduleForm()
+	calendarWeek = getCalendarWeek(request.args.get('week'))
+	weekOf = calendarWeek[0]
+	weekdays, days, unavail = getWeekScheduleData(calendarWeek)
+
 	if newWeekScheduleForm.submitNewWeek.data and newWeekScheduleForm.validate():
-		for day in calendarWeek:
-			dayRow = Day.query.filter_by(date=day.date()).first()
-			if not dayRow:
-				newDay = Day(name=day.date().strftime('%m/%d/%Y'), date=day.date())
-				db.session.add(newDay)
-				db.session.commit()
+		createWeekSchedule(calendarWeek)
 		flash('Schedule created for the week of '+weekOf.strftime('%B %d, %Y'), 'success')
 		return redirect(url_for('admin.configureSchedule', week=weekOf.strftime('%Y-%m-%d')))
 
 	if deleteWeekScheduleForm.submitDeleteWeek.data and deleteWeekScheduleForm.validate():
-		for day in calendarWeek:
-			dayRow = Day.query.filter_by(date=day.date()).first()
-			if dayRow:
-				for shift in dayRow.shifts:
-					db.session.delete(shift)
-				db.session.delete(dayRow)
-				db.session.commit()
+		deleteWeekSchedule(calendarWeek)
 		flash('Schedule deleted for the week of '+weekOf.strftime('%B %d, %Y'), 'success')
 		return redirect(url_for('admin.configureSchedule', week=weekOf.strftime('%Y-%m-%d')))
 

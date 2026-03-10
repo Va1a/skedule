@@ -4,11 +4,10 @@ import sys
 
 TARGETS = [
     "skedule",
+    "devtools",
     "tests",
     "main.py",
     "run.py",
-    "create_dummy_data.py",
-    "drop_create_db.py",
 ]
 
 
@@ -24,6 +23,7 @@ def main() -> int:
     fatal_code = run_flake8(
         "--count",
         "--select=E9,F63,F7,F82",
+        "--extend-ignore=W191",
         "--show-source",
         "--statistics",
     )
@@ -32,8 +32,8 @@ def main() -> int:
 
     return run_flake8(
         "--count",
-        "--exit-zero",
         "--max-complexity=10",
         "--max-line-length=127",
+        "--extend-ignore=W191",
         "--statistics",
     )

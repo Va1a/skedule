@@ -39,7 +39,9 @@ dependencies = [
 ]
 
 [project.scripts]
-lint = "skedule.lint:main"
+lint = "devtools.lint:main"
+localdb = "devtools.localdb:main"
+dummydata = "devtools.dummydata:main"
 
 [tool.setuptools.packages.find]
-include = ["skedule*"]
+include = ["skedule*", "devtools*"]
