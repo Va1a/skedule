@@ -1,0 +1,194 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Notifications</h1>
+</div>
+
+{% if alerts.items %}
+
+<div class="row">
+  {% for alert in alerts.items %}
+  <div class="col-12 mb-3">
+    <div class="card {% if alert.id in unseen_alert_ids %}border-warning{% endif %}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <h6 class="card-title mb-2">
+              {% if alert.id in unseen_alert_ids %}
+                <span class="text-danger me-2" style="font-size: 0.8em;">●</span>
+              {% endif %}
+              {% if alert.content.get('title') %}
+                {{ alert.content.title }}
+              {% else %}
+                Notification
+              {% endif %}
+            </h6>
+            
+            <p class="card-text mb-2">
+              {% if alert.content.get('message') %}
+                {{ alert.content.message }}
+              {% else %}
+                No message content available.
+              {% endif %}
+            </p>
+            
+            {% if alert.content.get('shift_name') or alert.content.get('shift_id') %}
+            <div class="mb-2">
+              <small class="text-muted">
+                <span data-feather="calendar" style="width: 14px; height: 14px;"></span>
+                Related to: 
+                {% if alert.content.get('shift_name') %}
+                  {{ alert.content.shift_name }}
+                {% else %}
+                  Shift #{{ alert.content.shift_id }}
+                {% endif %}
+                {% if alert.content.get('shift_date') %}
+                  on {{ alert.content.shift_date }}
+                {% endif %}
+              </small>
+            </div>
+            {% endif %}
+            
+            <small class="text-muted">
+              <span data-feather="clock" style="width: 14px; height: 14px;"></span>
+              {{ alert.timestamp.strftime('%A, %B %d, %Y at %I:%M %p').replace(' 0', ' ') }}
+            </small>
+            
+            {% if alert.texted or alert.emailed %}
+            <div class="mt-2">
+              {% if alert.texted %}
+                <span class="badge bg-secondary me-1">
+                  <span data-feather="smartphone" style="width: 12px; height: 12px;"></span>
+                  Texted
+                </span>
+              {% endif %}
+              {% if alert.emailed %}
+                <span class="badge bg-secondary">
+                  <span data-feather="mail" style="width: 12px; height: 12px;"></span>
+                  Emailed
+                </span>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+          
+          <div class="ms-3">
+            <form action="{{ url_for('main.dismiss_alert', alert_id=alert.id) }}" method="POST" class="d-inline">
+              <button type="button" 
+                      class="btn btn-sm btn-outline-danger" 
+                      onclick="showDismissModal({{ alert.id }}, '{{ alert.content.get('title', 'this notification') }}')" 
+                      title="Dismiss notification">
+                <span data-feather="x" class="align-text-bottom"></span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if alerts.pages > 1 %}
+<nav aria-label="Notifications pagination">
+  <ul class="pagination justify-content-center">
+    {% if alerts.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('main.notifications', page=alerts.prev_num) }}">
+          <span data-feather="chevron-left" class="align-text-bottom"></span>
+          Previous
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">
+          <span data-feather="chevron-left" class="align-text-bottom"></span>
+          Previous
+        </span>
+      </li>
+    {% endif %}
+    
+    {% for page_num in alerts.iter_pages() %}
+      {% if page_num %}
+        {% if page_num != alerts.page %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('main.notifications', page=page_num) }}">{{ page_num }}</a>
+          </li>
+        {% else %}
+          <li class="page-item active">
+            <span class="page-link">{{ page_num }}</span>
+          </li>
+        {% endif %}
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">...</span>
+        </li>
+      {% endif %}
+    {% endfor %}
+    
+    {% if alerts.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('main.notifications', page=alerts.next_num) }}">
+          Next
+          <span data-feather="chevron-right" class="align-text-bottom"></span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">
+          Next
+          <span data-feather="chevron-right" class="align-text-bottom"></span>
+        </span>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-5">
+  <div class="mb-4">
+    <span data-feather="bell-off" style="width: 64px; height: 64px; color: #6c757d;"></span>
+  </div>
+  <h3 class="text-muted">No Notifications</h3>
+  <p class="text-muted">You don't have any notifications at the moment.</p>
+</div>
+{% endif %}
+
+<!-- Dismiss Confirmation Modal -->
+<div class="modal fade" id="dismissModal" tabindex="-1" aria-labelledby="dismissModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dismissModalLabel">Dismiss Notification</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to dismiss <strong id="notificationTitle"></strong>?</p>
+        <small class="text-muted">This action cannot be undone.</small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Notification</button>
+        <form id="dismissForm" method="POST" class="d-inline">
+          <button type="submit" class="btn btn-danger">
+            <span data-feather="x" class="align-text-bottom me-1"></span>
+            Dismiss
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showDismissModal(alertId, alertTitle) {
+  document.getElementById('notificationTitle').textContent = alertTitle;
+  document.getElementById('dismissForm').action = '/alerts/' + alertId + '/dismiss';
+  
+  const modal = new bootstrap.Modal(document.getElementById('dismissModal'));
+  modal.show();
+}
+</script>
+
+{% endblock %}
