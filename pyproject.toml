@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skedule"
+version = "0.1.0"
+description = "Open Source Scheduling Tool"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "bcrypt",
+    "beautifulsoup4>=4.14.3",
+    "blinker",
+    "click",
+    "flake8",
+    "flask",
+    "flask-bcrypt",
+    "flask-login",
+    "flask-sqlalchemy",
+    "flask-wtf",
+    "iniconfig",
+    "itsdangerous",
+    "jinja2",
+    "markupsafe",
+    "mccabe",
+    "oauthlib",
+    "packaging",
+    "pluggy",
+    "pycodestyle",
+    "pyflakes",
+    "pytest",
+    "python-dotenv",
+    "pytz",
+    "sqlalchemy",
+    "typing-extensions",
+    "werkzeug",
+    "wtforms",
+]
+
+[project.scripts]
+lint = "skedule.lint:main"
+
+[tool.setuptools.packages.find]
+include = ["skedule*"]

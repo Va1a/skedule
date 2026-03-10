@@ -137,6 +137,9 @@
             <a class="nav-link" href="/alerts">
               <span data-feather="bell" class="align-text-bottom"></span>
               Notifications
+              {% if g.unseen_notifications_count > 0 %}
+                <span class="badge bg-danger mb-1" style="font-size: 0.6em;">{{ g.unseen_notifications_count }}</span>
+              {% endif %}
             </a>
           </li>
         </ul>

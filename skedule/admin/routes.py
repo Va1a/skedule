@@ -81,7 +81,7 @@ def addShift():
 				if not emp.isdigit():
 					flash('Invalid Employee List!', 'danger')
 					return redirect(url_for('admin.addShift', datetime=inputDateTime))
-				employee = User.query.filter_by(external_id=emp).first()
+				employee = db.session.scalar(db.select(User).filter(User.external_id == emp))
 				if not employee:
 					flash(f'Employee "{emp}" not found!', 'danger')
 					return redirect(url_for('admin.addShift', datetime=inputDateTime))
@@ -96,7 +96,7 @@ def addShift():
 @admin.route('/schedule/configure/shift/<int:shift_id>', methods=['GET', 'POST'])
 @login_required
 def editShift(shift_id):
-	shift = Shift.query.get_or_404(shift_id)
+	shift = db.get_or_404(Shift, shift_id)
 	date = shift.day.date
 	form = EditShiftForm()
 	deleteShiftForm = DeleteShiftForm()
@@ -125,7 +125,7 @@ def editShift(shift_id):
 @admin.route('/schedule/configure/shift/<int:shift_id>/delete', methods=['POST'])
 @login_required
 def deleteShift(shift_id):
-	shift = Shift.query.get_or_404(shift_id)
+	shift = db.get_or_404(Shift, shift_id)
 	url = url_for('admin.configureSchedule', week=shift.day.date.strftime('%Y-%m-%d'))
 	flash(f'Shift "{shift.name}" Deleted!', 'success')
 	db.session.delete(shift)
@@ -149,7 +149,7 @@ def templateManager():
 				if not emp.isdigit():
 					flash('Invalid Employee List!', 'danger')
 					return redirect(url_for('admin.templateManager'))
-				employee = User.query.filter_by(external_id=emp).first()
+				employee = db.session.scalar(db.select(User).filter(User.external_id == emp))
 				if not employee:
 					flash(f'Employee "{emp}" not found!', 'danger')
 					return redirect(url_for('admin.templateManager'))
@@ -169,7 +169,7 @@ def viewTemplates():
 @admin.route('/schedule/configure/template/<int:template_id>', methods=['GET','POST'])
 @login_required
 def editTemplate(template_id):
-	template = Template.query.get_or_404(template_id)
+	template = db.get_or_404(Template, template_id)
 	form = EditTemplateForm()
 	if request.method == 'GET':
 		form.shiftName.data = template.name
@@ -191,7 +191,7 @@ def editTemplate(template_id):
 				if not emp.isdigit():
 					flash('Invalid Employee List!', 'danger')
 					return redirect(url_for('admin.editTemplate', template_id=template.id))
-				employee = User.query.filter_by(external_id=emp).first()
+				employee = db.session.scalar(db.select(User).filter(User.external_id == emp))
 				if not employee:
 					flash(f'Employee "{emp}" not found!', 'danger')
 					return redirect(url_for('admin.editTemplate', template_id=template.id))
@@ -208,11 +208,10 @@ def editTemplate(template_id):
 @admin.route('/schedule/configure/template/<int:template_id>/delete', methods=['POST'])
 @login_required
 def deleteTemplate(template_id):
-	template = Template.query.get_or_404(template_id)
+	template = db.get_or_404(Template, template_id)
 	url = url_for('admin.viewTemplates')
 	flash(f'Template "{template.name}" Deleted!', 'success')
 	db.session.delete(template)
 	db.session.commit()
 	
 	return redirect(url)
-
