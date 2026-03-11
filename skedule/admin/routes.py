@@ -23,11 +23,13 @@ from skedule.admin.forms import (
 )
 from skedule.features import (
     feature_required,
+    get_feature_config,
     get_feature_entry,
     get_feature_entries,
+    set_feature_config,
     set_feature_enabled,
 )
-from skedule.models import Day, LogField, Shift, Template, User
+from skedule.models import Day, LogEntry, LogField, Shift, Template, User
 from skedule.utils import (
     daysOfCalendarWeek,
     getDayName,
@@ -99,6 +101,32 @@ def updateFeature(feature_name):
     )
 
 
+@admin.route("/api/admin/features/log/settings", methods=["POST"])
+@login_required
+def updateLogFeatureSettings():
+    if not hasValidFeatureCsrfToken():
+        return jsonify({"error": "Invalid CSRF token."}), 403
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request must include a JSON object."}), 400
+
+    allowed_keys = {"require_relating_shift", "require_current_shift"}
+    if not set(data).issubset(allowed_keys):
+        return jsonify({"error": "Unknown log setting supplied."}), 400
+    if not all(isinstance(value, bool) for value in data.values()):
+        return jsonify({"error": "Log settings must be boolean values."}), 400
+
+    feature = set_feature_config("logs", **data)
+    return jsonify(
+        {
+            "feature": feature.toJSON(),
+            "config": get_feature_config("logs"),
+            "message": "Log settings updated.",
+        }
+    )
+
+
 @admin.route("/features/log", methods=["GET", "POST"])
 @login_required
 def configureLogFeature():
@@ -154,6 +182,7 @@ def configureLogFeature():
         feature_name="logs",
         field_types=LOG_FIELD_TYPES,
         fields=getLogFields(),
+        log_config=get_feature_config("logs"),
     )
 
 
@@ -168,6 +197,18 @@ def deleteLogField(field_id):
     db.session.commit()
     flash("Log field deleted.", "success")
     return redirect(url_for("admin.configureLogFeature"))
+
+
+@admin.route("/api/admin/features/log/field/<int:field_id>", methods=["DELETE"])
+@login_required
+def deleteLogFieldApi(field_id):
+    if not hasValidFeatureCsrfToken():
+        return jsonify({"error": "Invalid CSRF token."}), 403
+
+    field = db.get_or_404(LogField, field_id)
+    db.session.delete(field)
+    db.session.commit()
+    return jsonify({"deleted_id": field_id, "message": "Log field deleted."})
 
 
 @admin.route("/api/admin/features/log/fields/reorder", methods=["POST"])
@@ -450,7 +491,11 @@ def viewTemplates():
 @login_required
 @feature_required("logs")
 def viewLogs():
-    return render_template("view_logs.html")
+    log_entries = LogEntry.query.order_by(LogEntry.created_at.desc()).all()
+    return render_template(
+        "view_logs.html",
+        log_entries=log_entries,
+    )
 
 
 @admin.route("/schedule/configure/template/<int:template_id>", methods=["GET", "POST"])

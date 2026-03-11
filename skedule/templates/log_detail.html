@@ -1,0 +1,54 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <div>
+    <h1 class="h2 mb-1">Log Entry</h1>
+    <div class="text-muted">Submitted {{ log_entry.created_at.strftime('%m/%d/%Y %H:%M') }}</div>
+  </div>
+</div>
+
+<div class="card" style="max-width: 72rem;">
+  <div class="card-body">
+    <div class="row g-4 mb-4">
+      <div class="col-md-4">
+        <div class="text-muted small mb-1">Submitted By</div>
+        <div>{{ log_entry.user.name }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted small mb-1">Related Shift</div>
+        {% if log_entry.related_shift %}
+        <a href="{{ url_for('main.viewShift', shift_id=log_entry.related_shift.id) }}">
+          {{ log_entry.related_shift.name }}
+        </a>
+        <div class="text-muted small">{{ log_entry.related_shift.startTime.strftime('%m/%d/%Y %H:%M') }}</div>
+        {% else %}
+        <div class="text-muted">None</div>
+        {% endif %}
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted small mb-1">Log ID</div>
+        <div>#{{ log_entry.id }}</div>
+      </div>
+    </div>
+
+    <div class="table-responsive border rounded bg-white px-2">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Response</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, value in log_entry.field_data.items() %}
+          <tr>
+            <td>{{ field_labels.get(key, key) }}</td>
+            <td>{{ value or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

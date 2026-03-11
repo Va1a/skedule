@@ -3,6 +3,11 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 	<h1 class="h2">Shift Details</h1>
 	<div class="btn-toolbar mb-2 mb-md-0">
+      {% if can_manage_shift_logs %}
+      <button type="button" class="btn btn-sm btn-outline-primary mb-2 me-2" data-bs-toggle="modal" data-bs-target="#shiftLogsModal">
+        <span data-feather="book-open" class="align-text-bottom"></span>
+      </button>
+      {% endif %}
 	    <a href="{{ url_for('admin.editShift', shift_id=shift.id) }}" type="button" class="btn btn-sm btn-outline-secondary mb-2">
 	      <span data-feather="edit" class="align-text-bottom"></span>
 	    </a>
@@ -96,5 +101,37 @@
 	</div>
 
 </div>
+
+{% if can_manage_shift_logs %}
+<div class="modal fade" id="shiftLogsModal" tabindex="-1" aria-labelledby="shiftLogsModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shiftLogsModalTitle">Submitted Logs for {{ shift.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if shift_logs %}
+        <div class="list-group">
+          {% for entry in shift_logs %}
+          <a class="list-group-item list-group-item-action" href="{{ url_for('main.viewLogEntry', log_id=entry.id) }}">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">{{ entry.user.name }}</div>
+                <div class="text-muted small">{{ entry.created_at.strftime('%m/%d/%Y %H:%M') }}</div>
+              </div>
+              <span class="text-primary">Open</span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted">No logs have been submitted for this shift yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}

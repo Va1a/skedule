@@ -5,51 +5,91 @@
 </div>
 
 {% if fields %}
-<form>
-  <div class="row g-3">
-    {% for field in fields %}
-    <div class="col-md-6">
-      <label for="log-field-{{ field.field_key }}" class="form-label">
-        {{ field.label }}
-        {% if field.required %}<span class="text-danger">*</span>{% endif %}
-      </label>
-
-      {% if field.field_type == 'text' %}
-      <input
-        type="text"
-        class="form-control"
-        id="log-field-{{ field.field_key }}"
-        name="{{ field.field_key }}"
-        {% if field.required %}required{% endif %}
-      >
-      {% elif field.field_type == 'time' %}
-      <input
-        type="time"
-        class="form-control"
-        id="log-field-{{ field.field_key }}"
-        name="{{ field.field_key }}"
-        {% if field.required %}required{% endif %}
-      >
-      {% elif field.field_type == 'select' %}
-      <select
-        class="form-select"
-        id="log-field-{{ field.field_key }}"
-        name="{{ field.field_key }}"
-        {% if field.required %}required{% endif %}
-      >
-        <option value="">Select an option</option>
-        {% for option in field.options %}
-        <option value="{{ option }}">{{ option }}</option>
-        {% endfor %}
-      </select>
+<form method="POST">
+  <div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light" style="max-width: 68rem;">
+    {% if log_config.require_relating_shift %}
+    <div class="mb-4" style="max-width: 32rem;">
+      {% if log_config.require_current_shift %}
+        {% if current_shift %}
+        <label class="form-label">Related Shift</label>
+        <input
+          type="text"
+          class="form-control"
+          value="{{ current_shift.name }} on {{ current_shift.startTime.strftime('%m/%d/%Y at %H:%M') }}"
+          disabled
+        >
+        <input type="hidden" name="related_shift_id" value="{{ current_shift.id }}">
+        <div class="form-text">This log will be associated with your current active shift.</div>
+        {% else %}
+        <div class="alert alert-warning mb-0" role="alert">
+          You must currently be within one of your assigned shifts to submit a log.
+        </div>
+        {% endif %}
+      {% else %}
+        <label for="related-shift-id" class="form-label">Related Shift <span class="text-danger">*</span></label>
+        <select class="form-select" id="related-shift-id" name="related_shift_id" required>
+          <option value="">Select one of your shifts</option>
+          {% for shift in related_shifts %}
+          <option value="{{ shift.id }}">
+            {{ shift.name }} on {{ shift.startTime.strftime('%m/%d/%Y at %H:%M') }}
+          </option>
+          {% endfor %}
+        </select>
+        <div class="form-text">Only shifts you are assigned to can be attached to this log.</div>
       {% endif %}
     </div>
-    {% endfor %}
-  </div>
+    {% endif %}
 
-  <div class="mt-4">
-    <button type="submit" class="btn btn-primary" disabled>Save Log Entry</button>
-    <small class="text-muted ms-2">Log entry persistence is not implemented yet.</small>
+    <div class="row g-3">
+      {% for field in fields %}
+      <div class="col-md-6">
+        <label for="log-field-{{ field.field_key }}" class="form-label">
+          {{ field.label }}
+          {% if field.required %}<span class="text-danger">*</span>{% endif %}
+        </label>
+
+        {% if field.field_type == 'text' %}
+        <input
+          type="text"
+          class="form-control"
+          id="log-field-{{ field.field_key }}"
+          name="{{ field.field_key }}"
+          {% if field.required %}required{% endif %}
+        >
+        {% elif field.field_type == 'time' %}
+        <input
+          type="time"
+          class="form-control"
+          id="log-field-{{ field.field_key }}"
+          name="{{ field.field_key }}"
+          {% if field.required %}required{% endif %}
+        >
+        {% elif field.field_type == 'select' %}
+        <select
+          class="form-select"
+          id="log-field-{{ field.field_key }}"
+          name="{{ field.field_key }}"
+          {% if field.required %}required{% endif %}
+        >
+          <option value="">Select an option</option>
+          {% for option in field.options %}
+          <option value="{{ option }}">{{ option }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-4">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        {% if log_config.require_current_shift and not current_shift %}disabled{% endif %}
+      >
+        Save Log Entry
+      </button>
+    </div>
   </div>
 </form>
 {% else %}

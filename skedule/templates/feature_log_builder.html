@@ -21,9 +21,9 @@
 
 <p class="text-muted">Configure the fields that appear on the dynamic log form.</p>
 
-<div class="row g-4">
+<div class="row g-4 align-items-start">
   <div class="col-lg-5">
-    <div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light h-100">
+    <div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light">
       <h2 class="h5 mb-3">Add Field</h2>
       <form method="POST">
         <input type="hidden" name="feature_api_token" value="{{ feature_api_token }}">
@@ -73,13 +73,65 @@
         <button type="submit" class="btn btn-primary">Add Field</button>
       </form>
     </div>
+    
+    <div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light mt-4">
+      <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+        <h2 class="h5 mb-0">Submission Rules</h2>
+        <div id="logSettingsSaveStatus" class="small text-muted" aria-live="polite">
+          Saved <span data-feather="check" class="align-text-bottom ms-1"></span>
+        </div>
+      </div>
+
+      <div class="form-check form-switch mb-3">
+        <input
+          class="form-check-input log-setting-toggle"
+          type="checkbox"
+          role="switch"
+          id="require-relating-shift"
+          data-setting-name="require_relating_shift"
+          {% if log_config.require_relating_shift %}checked{% endif %}
+        >
+        <label class="form-check-label fw-semibold" for="require-relating-shift">
+          Require relating shift
+        </label>
+        <div class="form-text">
+          Require each log submission to be associated with one of the user’s assigned shifts.
+        </div>
+      </div>
+
+      <div class="form-check form-switch">
+        <input
+          class="form-check-input log-setting-toggle"
+          type="checkbox"
+          role="switch"
+          id="require-current-shift"
+          data-setting-name="require_current_shift"
+          {% if log_config.require_current_shift %}checked{% endif %}
+        >
+        <label class="form-check-label fw-semibold" for="require-current-shift">
+          Require current shift
+        </label>
+        <div class="form-text">
+          Only allow submission during the user’s active shift and automatically attach that shift.
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="col-lg-7">
-    <div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light h-100">
-      <h2 class="h5 mb-3">Current Log Fields</h2>
+    <div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light">
+      <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+        <h2 class="h5 mb-0">Current Fields</h2>
+        <div
+          id="logFieldsSaveStatus"
+          class="small text-muted"
+          aria-live="polite"
+        >
+          Saved <span data-feather="check" class="align-text-bottom ms-1"></span>
+        </div>
+      </div>
       {% if fields %}
-      <div class="table-responsive">
+      <div class="table-responsive border rounded bg-white px-2">
         <table class="table align-middle">
           <thead>
             <tr>
@@ -96,14 +148,13 @@
             {% for field in fields %}
             <tr draggable="true" data-field-id="{{ field.id }}">
               <td class="text-muted log-drag-cell">
-                <button
-                  type="button"
-                  class="btn btn-sm btn-link text-muted log-drag-handle"
+                <span
+                  class="log-drag-handle"
                   aria-label="Drag to reorder {{ field.label }}"
                   title="Drag to reorder"
                 >
                   <span class="log-drag-dots" aria-hidden="true">••<br>••<br>••</span>
-                </button>
+                </span>
               </td>
               <td>{{ field.label }}</td>
               <td><code>{{ field.field_key }}</code></td>
@@ -111,19 +162,26 @@
               <td>{{ 'Yes' if field.required else 'No' }}</td>
               <td>{{ field.options|join(', ') if field.options else '—' }}</td>
               <td class="text-end">
-                <form method="POST" action="{{ url_for('admin.deleteLogField', field_id=field.id) }}">
-                  <input type="hidden" name="feature_api_token" value="{{ feature_api_token }}">
-                  <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                </form>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-danger log-delete-button"
+                  data-field-id="{{ field.id }}"
+                >
+                  Delete
+                </button>
               </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-      {% else %}
-      <p class="text-muted mb-0">No fields have been added yet.</p>
       {% endif %}
+      <p
+        class="text-muted mb-0{% if fields %} d-none{% endif %}"
+        id="logFieldsEmptyState"
+      >
+        No fields have been added yet.
+      </p>
     </div>
   </div>
 </div>
@@ -135,6 +193,15 @@
   const optionsGroup = document.getElementById('logFieldOptionsGroup');
   const fieldTypeSelect = document.getElementById('field_type');
   const tableBody = document.getElementById('logFieldsTableBody');
+  const emptyState = document.getElementById('logFieldsEmptyState');
+  const liveSave = window.createLiveSaveIndicator(
+    document.getElementById('logFieldsSaveStatus')
+  );
+  const settingsSave = window.createLiveSaveIndicator(
+    document.getElementById('logSettingsSaveStatus')
+  );
+  const relatingShiftToggle = document.getElementById('require-relating-shift');
+  const currentShiftToggle = document.getElementById('require-current-shift');
   const csrfToken = '{{ feature_api_token }}';
   let draggedRow = null;
 
@@ -174,10 +241,56 @@
     }
   }
 
+  function syncLogSettingDependencies(config) {
+    relatingShiftToggle.checked = Boolean(config.require_relating_shift);
+    currentShiftToggle.checked = Boolean(config.require_current_shift);
+    currentShiftToggle.disabled = !relatingShiftToggle.checked;
+  }
+
+  async function updateLogSetting(toggle) {
+    const previousConfig = {
+      require_relating_shift: relatingShiftToggle.checked,
+      require_current_shift: currentShiftToggle.checked,
+    };
+    settingsSave.setSaving();
+    relatingShiftToggle.disabled = true;
+    currentShiftToggle.disabled = true;
+
+    try {
+      const response = await fetch('/api/admin/features/log/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Feature-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({
+          [toggle.dataset.settingName]: toggle.checked,
+        }),
+        credentials: 'same-origin',
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to update log settings.');
+      }
+
+      syncLogSettingDependencies(payload.config);
+      settingsSave.setSaved();
+    } catch (error) {
+      syncLogSettingDependencies(previousConfig);
+      settingsSave.setError();
+    } finally {
+      relatingShiftToggle.disabled = false;
+      currentShiftToggle.disabled = !relatingShiftToggle.checked;
+    }
+  }
+
   async function saveFieldOrder() {
     if (!tableBody) {
       return;
     }
+
+    liveSave.setSaving();
 
     const fieldIds = Array.from(tableBody.querySelectorAll('tr')).map((row) => (
       Number.parseInt(row.dataset.fieldId, 10)
@@ -195,8 +308,73 @@
 
     if (!response.ok) {
       const payload = await response.json();
+      liveSave.setError();
       throw new Error(payload.error || 'Unable to reorder log fields.');
     }
+
+    liveSave.setSaved();
+  }
+
+  async function deleteField(row) {
+    liveSave.setSaving();
+
+    const response = await fetch(`/api/admin/features/log/field/${row.dataset.fieldId}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Feature-CSRF-Token': csrfToken,
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      const payload = await response.json();
+      liveSave.setError();
+      throw new Error(payload.error || 'Unable to delete log field.');
+    }
+
+    row.remove();
+
+    if (tableBody && tableBody.querySelectorAll('tr').length === 0) {
+      const tableResponsive = tableBody.closest('.table-responsive');
+      if (tableResponsive) {
+        tableResponsive.remove();
+      }
+      if (emptyState) {
+        emptyState.classList.remove('d-none');
+      }
+    }
+
+    liveSave.setSaved();
+  }
+
+  function animateTableReorder(container, moveRow) {
+    const rows = Array.from(container.querySelectorAll('tr'));
+    const firstPositions = new Map(
+      rows.map((row) => [row.dataset.fieldId, row.getBoundingClientRect()])
+    );
+
+    moveRow();
+
+    const nextRows = Array.from(container.querySelectorAll('tr'));
+    nextRows.forEach((row) => {
+      const firstBox = firstPositions.get(row.dataset.fieldId);
+      if (!firstBox) {
+        return;
+      }
+
+      const lastBox = row.getBoundingClientRect();
+      const deltaY = firstBox.top - lastBox.top;
+      if (!deltaY) {
+        return;
+      }
+
+      row.style.transform = `translateY(${deltaY}px)`;
+      row.style.transition = 'transform 0s';
+      requestAnimationFrame(() => {
+        row.style.transition = 'transform 180ms ease';
+        row.style.transform = '';
+      });
+    });
   }
 
   function getDragAfterElement(container, clientY) {
@@ -212,14 +390,22 @@
   }
 
   updateOptionsVisibility();
+  syncLogSettingDependencies({
+    require_relating_shift: relatingShiftToggle.checked,
+    require_current_shift: currentShiftToggle.checked,
+  });
   fieldTypeSelect.addEventListener('change', updateOptionsVisibility);
   toggle.addEventListener('change', updateFeature);
+  relatingShiftToggle.addEventListener('change', () => updateLogSetting(relatingShiftToggle));
+  currentShiftToggle.addEventListener('change', () => updateLogSetting(currentShiftToggle));
 
   if (tableBody) {
     tableBody.querySelectorAll('tr').forEach((row) => {
-      row.addEventListener('dragstart', () => {
+      row.addEventListener('dragstart', (event) => {
         draggedRow = row;
         row.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', row.dataset.fieldId);
       });
 
       row.addEventListener('dragend', async () => {
@@ -234,6 +420,18 @@
       });
     });
 
+    tableBody.querySelectorAll('.log-delete-button').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const row = button.closest('tr');
+        button.disabled = true;
+        try {
+          await deleteField(row);
+        } catch (error) {
+          button.disabled = false;
+        }
+      });
+    });
+
     tableBody.addEventListener('dragover', (event) => {
       event.preventDefault();
       if (!draggedRow) {
@@ -241,11 +439,17 @@
       }
 
       const afterElement = getDragAfterElement(tableBody, event.clientY);
-      if (!afterElement) {
-        tableBody.appendChild(draggedRow);
-      } else {
-        tableBody.insertBefore(draggedRow, afterElement);
+      if (afterElement === draggedRow || draggedRow.nextElementSibling === afterElement) {
+        return;
       }
+
+      animateTableReorder(tableBody, () => {
+        if (!afterElement) {
+          tableBody.appendChild(draggedRow);
+        } else {
+          tableBody.insertBefore(draggedRow, afterElement);
+        }
+      });
     });
   }
 })();

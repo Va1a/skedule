@@ -12,6 +12,10 @@ FEATURE_DEFINITIONS = {
         "icon": "file-text",
         "description": "Show log entry and log viewer navigation across the app.",
         "default_enabled": False,
+        "settings": {
+            "require_relating_shift": False,
+            "require_current_shift": False,
+        },
     },
     "leaderboard": {
         "label": "Leaderboard",
@@ -63,6 +67,7 @@ def get_feature_entries():
             "icon": definition["icon"],
             "description": definition["description"],
             "enabled": feature_rows[name].enabled,
+            "config": get_feature_config(name),
         }
         for name, definition in FEATURE_DEFINITIONS.items()
     ]
@@ -80,7 +85,22 @@ def get_feature_entry(name):
         "icon": definition["icon"],
         "description": definition["description"],
         "enabled": feature_rows[name].enabled,
+        "config": get_feature_config(name),
     }
+
+
+def get_feature_config(name):
+    definition = FEATURE_DEFINITIONS.get(name)
+    if definition is None:
+        return {}
+
+    defaults = dict(definition.get("settings", {}))
+    feature = Feature.query.filter_by(name=name).first()
+    if feature is None:
+        return defaults
+
+    config = dict(feature.config or {})
+    return {**defaults, **config}
 
 
 def is_feature_enabled(name):
@@ -116,6 +136,35 @@ def set_feature_enabled(name, enabled):
         db.session.add(feature)
 
     feature.enabled = enabled
+    db.session.commit()
+    return feature
+
+
+def set_feature_config(name, **updates):
+    if name not in FEATURE_DEFINITIONS:
+        return None
+
+    feature = Feature.query.filter_by(name=name).first()
+    if feature is None:
+        feature = Feature(
+            name=name,
+            enabled=FEATURE_DEFINITIONS[name].get("default_enabled", False),
+            config={},
+        )
+        db.session.add(feature)
+
+    config = get_feature_config(name)
+    config.update(updates)
+
+    if name == "logs":
+        if "require_relating_shift" in updates and not updates["require_relating_shift"]:
+            config["require_current_shift"] = False
+        if config.get("require_current_shift"):
+            config["require_relating_shift"] = True
+        if not config.get("require_relating_shift"):
+            config["require_current_shift"] = False
+
+    feature.config = config
     db.session.commit()
     return feature
 

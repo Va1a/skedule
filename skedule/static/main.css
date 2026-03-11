@@ -218,21 +218,21 @@ red {
 }
 
 .log-drag-handle {
-  padding: 0;
+  display: inline-block;
   line-height: 0.8;
-  text-decoration: none;
   cursor: grab;
-}
-
-.log-drag-handle:hover {
-  transform: none;
-  box-shadow: none;
+  user-select: none;
+  pointer-events: none;
 }
 
 .log-drag-dots {
   display: inline-block;
   letter-spacing: 0.05rem;
   font-size: 0.85rem;
+}
+
+.live-save-pending {
+  animation: featureTogglePulse 0.9s ease-in-out infinite;
 }
 
 #logFieldsTableBody tr {

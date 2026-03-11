@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from skedule import bcrypt, create_app, db
-from skedule.models import Alert, Assignment, Day, Feature, LogField, Shift, User
+from skedule.models import Alert, Assignment, Day, Feature, LogEntry, LogField, Shift, User
 from tests.test_config import TestConfig
 
 
@@ -24,6 +24,24 @@ def app():
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture
+def login_user(client):
+    def do_login(user, password=None):
+        response = client.post(
+            "/login",
+            data={
+                "email": user.email,
+                "password": password or user.plaintext_password,
+                "submit": "Log In",
+            },
+            follow_redirects=True,
+        )
+        assert response.status_code == 200
+        return response
+
+    return do_login
 
 
 @pytest.fixture
@@ -148,21 +166,40 @@ def log_field_factory(app):
 
 
 @pytest.fixture
-def logged_in_user(client, user_factory):
+def log_entry_factory(app):
+    def factory(user, **overrides):
+        entry = LogEntry(
+            user_id=user.id,
+            related_shift_id=overrides.pop("related_shift_id", None),
+            field_data=overrides.pop("field_data", {"note": "Test entry"}),
+            **overrides,
+        )
+        db.session.add(entry)
+        db.session.commit()
+        return entry
+
+    return factory
+
+
+@pytest.fixture
+def logged_in_user(user_factory, login_user):
     user = user_factory()
-    response = client.post(
-        "/login",
-        data={
-            "email": user.email,
-            "password": user.plaintext_password,
-            "submit": "Log In",
-        },
-        follow_redirects=True,
-    )
-    assert response.status_code == 200
+    login_user(user)
     return user
 
 
 @pytest.fixture
 def second_user(user_factory):
     return user_factory(email="other@test.com", external_id="222", oauth_id="oauth-other")
+
+
+@pytest.fixture
+def admin_user(user_factory, login_user):
+    user = user_factory(
+        email="admin@test.com",
+        external_id="999",
+        oauth_id="oauth-admin",
+        meta={"is_admin": True},
+    )
+    login_user(user)
+    return user

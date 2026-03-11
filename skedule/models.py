@@ -224,12 +224,14 @@ class Feature(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), nullable=False, unique=True)
     enabled = db.Column(db.Boolean, nullable=False, default=False)
+    config = db.Column(db.JSON, nullable=False, default=dict)
 
     def toJSON(self):
         return {
             "id": self.id,
             "name": self.name,
             "enabled": self.enabled,
+            "config": self.config,
         }
 
 
@@ -251,4 +253,24 @@ class LogField(db.Model):
             "required": self.required,
             "options": self.options,
             "position": self.position,
+        }
+
+
+class LogEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    related_shift_id = db.Column(db.Integer, db.ForeignKey("shift.id"), nullable=True)
+    field_data = db.Column(db.JSON, nullable=False, default=dict)
+    created_at = db.Column(db.DateTime, nullable=False, default=getLocalizedTime)
+
+    user = db.relationship("User", backref="log_entries")
+    related_shift = db.relationship("Shift", backref="log_entries")
+
+    def toJSON(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "related_shift_id": self.related_shift_id,
+            "field_data": self.field_data,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
         }

@@ -11,10 +11,12 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from sqlalchemy import and_
+from datetime import timedelta
 
-from skedule.features import feature_required
+from skedule.features import feature_required, get_feature_config, is_feature_enabled
+from skedule.permissions import user_is_admin
 from skedule import db
-from skedule.models import Alert, Assignment, Day, LogField, Shift, User
+from skedule.models import Alert, Assignment, Day, LogEntry, LogField, Shift, User
 from skedule.utils import (
     daysOfCalendarWeek,
     getDayName,
@@ -26,6 +28,42 @@ from skedule.utils import (
 )
 
 main = Blueprint("main", __name__)
+
+
+def duration_to_timedelta(duration):
+    duration_value = str(duration).zfill(4)
+    hours = int(duration_value[:2])
+    minutes = int(duration_value[2:])
+    return timedelta(hours=hours, minutes=minutes)
+
+
+def get_log_context_for_user(user):
+    log_config = get_feature_config("logs")
+    user_assignments = (
+        Assignment.query.join(Shift)
+        .filter(Assignment.user_id == user.id)
+        .order_by(Shift.startTime.asc())
+        .all()
+    )
+    now = getLocalizedTime().replace(tzinfo=None)
+    related_shifts = sorted(
+        (assignment.shift for assignment in user_assignments),
+        key=lambda shift: abs((shift.startTime - now).total_seconds()),
+    )[:50]
+    current_shift = next(
+        (
+            shift
+            for shift in related_shifts
+            if shift.startTime <= now < shift.startTime + duration_to_timedelta(shift.duration)
+        ),
+        None,
+    )
+    return log_config, related_shifts, current_shift
+
+
+def get_log_field_labels():
+    fields = LogField.query.order_by(LogField.position.asc(), LogField.id.asc()).all()
+    return {field.field_key: field.label for field in fields}
 
 
 @main.before_app_request
@@ -101,11 +139,21 @@ def viewShift(shift_id):
     assignment = Assignment.query.filter_by(shift=shift, user=current_user).first()
     cancellable = bool(assignment and assignment.request)
     requestable = assignment is None
+    can_manage_shift_logs = user_is_admin(current_user) and is_feature_enabled("logs")
+    shift_logs = []
+    if can_manage_shift_logs:
+        shift_logs = (
+            LogEntry.query.filter_by(related_shift_id=shift.id)
+            .order_by(LogEntry.created_at.desc())
+            .all()
+        )
     return render_template(
         "shift.html",
         shift=shift,
         requestable=requestable,
         cancellable=cancellable,
+        can_manage_shift_logs=can_manage_shift_logs,
+        shift_logs=shift_logs,
     )
 
 
@@ -185,7 +233,98 @@ def schedule():
 @feature_required("logs")
 def log():
     fields = LogField.query.order_by(LogField.position.asc(), LogField.id.asc()).all()
-    return render_template("log.html", fields=fields)
+    log_config, related_shifts, current_shift = get_log_context_for_user(current_user)
+
+    return render_template(
+        "log.html",
+        fields=fields,
+        log_config=log_config,
+        related_shifts=related_shifts,
+        current_shift=current_shift,
+    )
+
+
+@main.route("/log", methods=["POST"])
+@login_required
+@feature_required("logs")
+def submitLog():
+    fields = LogField.query.order_by(LogField.position.asc(), LogField.id.asc()).all()
+    log_config, related_shifts, current_shift = get_log_context_for_user(current_user)
+    related_shift_ids = {shift.id for shift in related_shifts}
+    field_data = {}
+
+    for field in fields:
+        value = request.form.get(field.field_key, "").strip()
+        if field.required and not value:
+            flash(f'"{field.label}" is required.', "danger")
+            return render_template(
+                "log.html",
+                fields=fields,
+                log_config=log_config,
+                related_shifts=related_shifts,
+                current_shift=current_shift,
+            )
+        if value and field.field_type == "select" and value not in field.options:
+            flash(f'Invalid value supplied for "{field.label}".', "danger")
+            return render_template(
+                "log.html",
+                fields=fields,
+                log_config=log_config,
+                related_shifts=related_shifts,
+                current_shift=current_shift,
+            )
+        field_data[field.field_key] = value
+
+    related_shift_id = None
+    if log_config.get("require_relating_shift"):
+        if log_config.get("require_current_shift"):
+            if not current_shift:
+                flash("You must currently be within one of your assigned shifts to submit a log.", "danger")
+                return render_template(
+                    "log.html",
+                    fields=fields,
+                    log_config=log_config,
+                    related_shifts=related_shifts,
+                    current_shift=current_shift,
+                )
+            related_shift_id = current_shift.id
+        else:
+            selected_shift_id = request.form.get("related_shift_id", type=int)
+            if not selected_shift_id or selected_shift_id not in related_shift_ids:
+                flash("Please select one of your assigned shifts.", "danger")
+                return render_template(
+                    "log.html",
+                    fields=fields,
+                    log_config=log_config,
+                    related_shifts=related_shifts,
+                    current_shift=current_shift,
+                )
+            related_shift_id = selected_shift_id
+
+    log_entry = LogEntry(
+        user_id=current_user.id,
+        related_shift_id=related_shift_id,
+        field_data=field_data,
+    )
+    db.session.add(log_entry)
+    db.session.commit()
+    flash("Log entry submitted.", "success")
+    return redirect(url_for("main.log"))
+
+
+@main.route("/log/<int:log_id>")
+@login_required
+@feature_required("logs")
+def viewLogEntry(log_id):
+    log_entry = db.get_or_404(LogEntry, log_id)
+    if log_entry.user_id != current_user.id and not user_is_admin(current_user):
+        abort(403)
+
+    return render_template(
+        "log_detail.html",
+        log_entry=log_entry,
+        field_labels=get_log_field_labels(),
+    )
 
 
 @main.route("/leaderboard")

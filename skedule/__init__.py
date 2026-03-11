@@ -34,6 +34,7 @@ def create_app(config_class=Config):
     from skedule.errors.handlers import errors
     from skedule.features import is_feature_enabled
     from skedule.main.routes import main
+    from skedule.permissions import user_is_admin
     from skedule.users.routes import users
 
     app.register_blueprint(users)
@@ -52,6 +53,7 @@ def create_app(config_class=Config):
         return {
             "feature_enabled": is_feature_enabled,
             "feature_api_token": feature_api_token,
+            "user_is_admin": user_is_admin,
         }
 
     return app

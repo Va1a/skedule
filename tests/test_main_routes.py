@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from skedule import db
-from skedule.models import Alert, Assignment
+from skedule.models import Alert, Assignment, LogEntry
+from skedule.utils import getLocalizedTime
 
 
 def test_home_requires_login(client):
@@ -112,6 +113,249 @@ def test_log_page_renders_dynamic_fields_when_configured(
     assert b'name="officer"' in response.data
     assert b'type="time"' in response.data
     assert b'<option value="Patrol">Patrol</option>' in response.data
+
+
+def test_log_submission_creates_log_entry(client, logged_in_user, feature_factory, log_field_factory):
+    feature_factory(name="logs", enabled=True)
+    log_field_factory(label="Officer", field_key="officer", field_type="text", required=True)
+
+    response = client.post(
+        "/log",
+        data={"officer": "Unit 12"},
+        follow_redirects=True,
+    )
+
+    entry = LogEntry.query.one()
+    assert response.status_code == 200
+    assert b"Log entry submitted." in response.data
+    assert entry.user_id == logged_in_user.id
+    assert entry.field_data["officer"] == "Unit 12"
+
+
+def test_log_detail_page_renders_for_submitter(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_entry_factory,
+    shift_factory,
+):
+    feature_factory(name="logs", enabled=True)
+    shift = shift_factory(name="Test")
+    entry = log_entry_factory(
+        user=logged_in_user,
+        related_shift_id=shift.id,
+        field_data={"officer": "Unit 12"},
+    )
+
+    response = client.get(f"/log/{entry.id}")
+
+    assert response.status_code == 200
+    assert b"Log Entry" in response.data
+    assert b"Unit 12" in response.data
+    assert f"/schedule/shift/{shift.id}".encode() in response.data
+
+
+def test_log_detail_page_allows_admin_to_view_other_users_entry(
+    client,
+    admin_user,
+    second_user,
+    feature_factory,
+    log_entry_factory,
+):
+    feature_factory(name="logs", enabled=True)
+    entry = log_entry_factory(user=second_user, field_data={"officer": "Unit 99"})
+
+    response = client.get(f"/log/{entry.id}")
+
+    assert response.status_code == 200
+    assert b"Unit 99" in response.data
+
+
+def test_log_detail_page_rejects_non_admin_non_submitter(
+    client,
+    logged_in_user,
+    second_user,
+    feature_factory,
+    log_entry_factory,
+):
+    feature_factory(name="logs", enabled=True)
+    entry = log_entry_factory(user=second_user, field_data={"officer": "Unit 44"})
+
+    response = client.get(f"/log/{entry.id}")
+
+    assert response.status_code == 403
+
+
+def test_log_submission_with_related_shift_records_selected_shift(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_field_factory,
+    shift_factory,
+    assignment_factory,
+):
+    feature_factory(
+        name="logs",
+        enabled=True,
+        config={"require_relating_shift": True, "require_current_shift": False},
+    )
+    shift = shift_factory(name="Assigned Shift")
+    assignment_factory(user=logged_in_user, shift=shift, request=False, confirmed=True)
+    log_field_factory(label="Officer", field_key="officer", field_type="text", required=True)
+
+    response = client.post(
+        "/log",
+        data={"officer": "Unit 12", "related_shift_id": shift.id},
+        follow_redirects=True,
+    )
+
+    entry = LogEntry.query.one()
+    assert response.status_code == 200
+    assert entry.related_shift_id == shift.id
+
+
+def test_log_submission_with_current_shift_records_active_shift(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_field_factory,
+    shift_factory,
+    assignment_factory,
+):
+    feature_factory(
+        name="logs",
+        enabled=True,
+        config={"require_relating_shift": True, "require_current_shift": True},
+    )
+    active_shift = shift_factory(
+        name="Active Shift",
+        start_time=getLocalizedTime().replace(tzinfo=None) - timedelta(minutes=30),
+        duration=100,
+    )
+    assignment_factory(user=logged_in_user, shift=active_shift, request=False, confirmed=True)
+    log_field_factory(label="Officer", field_key="officer", field_type="text", required=True)
+
+    response = client.post(
+        "/log",
+        data={"officer": "Unit 12"},
+        follow_redirects=True,
+    )
+
+    entry = LogEntry.query.one()
+    assert response.status_code == 200
+    assert entry.related_shift_id == active_shift.id
+
+
+def test_log_page_can_require_related_shift_selection(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_field_factory,
+    shift_factory,
+    assignment_factory,
+):
+    feature_factory(
+        name="logs",
+        enabled=True,
+        config={"require_relating_shift": True, "require_current_shift": False},
+    )
+    shift = shift_factory(name="Assigned Shift")
+    assignment_factory(user=logged_in_user, shift=shift, request=False, confirmed=True)
+    log_field_factory(label="Officer", field_key="officer", field_type="text")
+
+    response = client.get("/log")
+
+    assert response.status_code == 200
+    assert b'name="related_shift_id"' in response.data
+    assert b"Select one of your shifts" in response.data
+    assert b"Assigned Shift" in response.data
+
+
+def test_log_page_can_require_current_shift(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_field_factory,
+    shift_factory,
+    assignment_factory,
+):
+    feature_factory(
+        name="logs",
+        enabled=True,
+        config={"require_relating_shift": True, "require_current_shift": True},
+    )
+    active_shift = shift_factory(
+        name="Active Shift",
+        start_time=getLocalizedTime().replace(tzinfo=None) - timedelta(minutes=30),
+        duration=100,
+    )
+    assignment_factory(user=logged_in_user, shift=active_shift, request=False, confirmed=True)
+    log_field_factory(label="Officer", field_key="officer", field_type="text")
+
+    response = client.get("/log")
+
+    assert response.status_code == 200
+    assert b'name="related_shift_id"' in response.data
+    assert b"This log will be associated with your current active shift." in response.data
+    assert b"Active Shift" in response.data
+
+
+def test_log_page_warns_when_current_shift_is_required_but_missing(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_field_factory,
+):
+    feature_factory(
+        name="logs",
+        enabled=True,
+        config={"require_relating_shift": True, "require_current_shift": True},
+    )
+    log_field_factory(label="Officer", field_key="officer", field_type="text")
+
+    response = client.get("/log")
+
+    assert response.status_code == 200
+    assert b"You must currently be within one of your assigned shifts to submit a log." in response.data
+
+
+def test_log_page_limits_related_shift_picker_to_50_closest_shifts(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_field_factory,
+    day_factory,
+    shift_factory,
+    assignment_factory,
+):
+    feature_factory(
+        name="logs",
+        enabled=True,
+        config={"require_relating_shift": True, "require_current_shift": False},
+    )
+    log_field_factory(label="Officer", field_key="officer", field_type="text")
+    base_time = getLocalizedTime().replace(tzinfo=None)
+
+    days_by_date = {}
+    for index in range(55):
+        shift_time = base_time + timedelta(hours=index - 27)
+        day = days_by_date.get(shift_time.date())
+        if day is None:
+            day = day_factory(date=shift_time.date())
+            days_by_date[shift_time.date()] = day
+        shift = shift_factory(
+            day=day,
+            name=f"Shift {index}",
+            start_time=shift_time,
+        )
+        assignment_factory(user=logged_in_user, shift=shift, request=False, confirmed=True)
+
+    response = client.get("/log")
+
+    assert response.status_code == 200
+    assert response.data.count(b"<option value=") == 51
+    assert b"Shift 27" in response.data
+    assert b"Shift 0" not in response.data
 
 
 def test_leaderboard_requires_feature_to_be_enabled(client, logged_in_user):

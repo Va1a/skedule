@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from skedule import db
-from skedule.models import Day, Feature, LogField, Shift
+from skedule.models import Day, Feature, LogEntry, LogField, Shift
 
 
 def test_configure_schedule_can_create_week(client, logged_in_user):
@@ -108,12 +108,57 @@ def test_feature_api_updates_enabled_features(client, logged_in_user):
     assert logs_feature.enabled is True
 
 
+def test_log_settings_api_updates_settings_with_dependency(client, logged_in_user):
+    client.get("/admin/features")
+    with client.session_transaction() as session:
+        token = session["feature_api_token"]
+
+    response = client.post(
+        "/api/admin/features/log/settings",
+        json={"require_current_shift": True},
+        headers={"X-Feature-CSRF-Token": token},
+    )
+
+    logs_feature = Feature.query.filter_by(name="logs").first()
+    assert response.status_code == 200
+    assert response.get_json()["config"]["require_current_shift"] is True
+    assert response.get_json()["config"]["require_relating_shift"] is True
+    assert logs_feature.config["require_current_shift"] is True
+    assert logs_feature.config["require_relating_shift"] is True
+
+
+def test_log_settings_api_disabling_relating_shift_turns_off_current_shift(
+    client,
+    logged_in_user,
+):
+    client.get("/admin/features")
+    with client.session_transaction() as session:
+        token = session["feature_api_token"]
+
+    client.post(
+        "/api/admin/features/log/settings",
+        json={"require_current_shift": True},
+        headers={"X-Feature-CSRF-Token": token},
+    )
+    response = client.post(
+        "/api/admin/features/log/settings",
+        json={"require_relating_shift": False},
+        headers={"X-Feature-CSRF-Token": token},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["config"]["require_relating_shift"] is False
+    assert response.get_json()["config"]["require_current_shift"] is False
+
+
 def test_log_builder_page_renders(client, logged_in_user):
     response = client.get("/features/log")
 
     assert response.status_code == 200
     assert b"Log Builder" in response.data
     assert b'for="feature-logs"' in response.data
+    assert b"Require relating shift" in response.data
+    assert b"Require current shift" in response.data
 
 
 def test_feature_detail_page_renders_for_simple_feature(client, logged_in_user):
@@ -167,6 +212,22 @@ def test_log_builder_can_delete_field(client, logged_in_user, log_field_factory)
     assert LogField.query.filter_by(id=field.id).first() is None
 
 
+def test_log_builder_delete_api_removes_field(client, logged_in_user, log_field_factory):
+    field = log_field_factory(label="Unit", field_key="unit_api", field_type="text")
+    client.get("/admin/features")
+    with client.session_transaction() as session:
+        token = session["feature_api_token"]
+
+    response = client.delete(
+        f"/api/admin/features/log/field/{field.id}",
+        headers={"X-Feature-CSRF-Token": token},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["deleted_id"] == field.id
+    assert LogField.query.filter_by(id=field.id).first() is None
+
+
 def test_log_builder_can_reorder_fields(client, logged_in_user, log_field_factory):
     first = log_field_factory(label="First", field_key="first", position=1)
     second = log_field_factory(label="Second", field_key="second", position=2)
@@ -202,3 +263,26 @@ def test_view_logs_renders_when_feature_is_enabled(client, logged_in_user, featu
 
     assert response.status_code == 200
     assert b"View Logs" in response.data
+
+
+def test_view_logs_lists_submitted_entries(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_entry_factory,
+    shift_factory,
+):
+    feature_factory(name="logs", enabled=True)
+    shift = shift_factory(name="Patrol Shift")
+    log_entry_factory(
+        user=logged_in_user,
+        related_shift_id=shift.id,
+        field_data={"officer": "Unit 12", "status": "Complete"},
+    )
+
+    response = client.get("/admin/logs")
+
+    assert response.status_code == 200
+    assert b"Patrol Shift" in response.data
+    assert f"/schedule/shift/{shift.id}".encode() in response.data
+    assert f"/log/{LogEntry.query.one().id}".encode() in response.data

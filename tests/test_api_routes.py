@@ -92,3 +92,37 @@ def test_api_assignment(app, client, auth_headers):
     data = json.loads(response.data)
     assert data["user"] == user.id
     assert data["shift"] == shift.id
+
+
+def test_api_same_origin_request_is_allowed(app, client, auth_headers):
+    day = Day(name="Test Day", date=datetime.now().date())
+    db.session.add(day)
+    db.session.commit()
+
+    shift = Shift(
+        name="Origin Shift",
+        startTime=datetime.now(),
+        duration=400,
+        maxEmployees=3,
+        minEmployees=1,
+        day_id=day.id,
+    )
+    db.session.add(shift)
+    db.session.commit()
+
+    response = client.get(
+        f"/api/shift/{shift.id}",
+        headers={"Origin": "https://localhost"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == "https://localhost"
+
+
+def test_api_cross_origin_request_is_rejected(app, client, auth_headers):
+    response = client.get(
+        "/api/template/all",
+        headers={"Origin": "https://evil.example"},
+    )
+
+    assert response.status_code == 403

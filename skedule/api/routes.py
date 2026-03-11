@@ -1,11 +1,25 @@
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_login import current_user
+from urllib.parse import urlsplit
 
 from skedule import db
 from skedule.models import Alert, Assignment, Day, Shift, Template, User
 from skedule.utils import ymdToDateTime, ymdhmToDateTime
 
 api = Blueprint("api", __name__)
+
+
+def is_same_origin_request():
+    origin = request.headers.get("Origin")
+    if not origin:
+        return True
+
+    request_origin = urlsplit(request.host_url)
+    header_origin = urlsplit(origin)
+    return (
+        header_origin.scheme == request_origin.scheme
+        and header_origin.hostname == request_origin.hostname
+    )
 
 
 def create_assignment_alert(user, alert_type, assignment, additional_data=None):
@@ -47,8 +61,21 @@ def create_assignment_alert(user, alert_type, assignment, additional_data=None):
 
 @api.before_request
 def beforeApiRequests():
+    if not is_same_origin_request():
+        abort(403)
     if not current_user.is_authenticated:
         abort(404)
+
+
+@api.after_request
+def applyApiCorsPolicy(response):
+    origin = request.headers.get("Origin")
+    if origin and is_same_origin_request():
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Vary"] = "Origin"
+    return response
 
 
 @api.route("/api/shift/<int:shift_id>")
