@@ -1,13 +1,11 @@
-from pathlib import Path
-
 from skedule import db
 
-from devtools.common import create_local_app
+from devtools.common import create_local_app, ensure_instance_path
 
 
 def main() -> int:
     app = create_local_app()
-    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    ensure_instance_path(app)
 
     with app.app_context():
         print("Deleting all data...")

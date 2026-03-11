@@ -1,0 +1,62 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Log</h1>
+</div>
+
+{% if fields %}
+<form>
+  <div class="row g-3">
+    {% for field in fields %}
+    <div class="col-md-6">
+      <label for="log-field-{{ field.field_key }}" class="form-label">
+        {{ field.label }}
+        {% if field.required %}<span class="text-danger">*</span>{% endif %}
+      </label>
+
+      {% if field.field_type == 'text' %}
+      <input
+        type="text"
+        class="form-control"
+        id="log-field-{{ field.field_key }}"
+        name="{{ field.field_key }}"
+        {% if field.required %}required{% endif %}
+      >
+      {% elif field.field_type == 'time' %}
+      <input
+        type="time"
+        class="form-control"
+        id="log-field-{{ field.field_key }}"
+        name="{{ field.field_key }}"
+        {% if field.required %}required{% endif %}
+      >
+      {% elif field.field_type == 'select' %}
+      <select
+        class="form-select"
+        id="log-field-{{ field.field_key }}"
+        name="{{ field.field_key }}"
+        {% if field.required %}required{% endif %}
+      >
+        <option value="">Select an option</option>
+        {% for option in field.options %}
+        <option value="{{ option }}">{{ option }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mt-4">
+    <button type="submit" class="btn btn-primary" disabled>Save Log Entry</button>
+    <small class="text-muted ms-2">Log entry persistence is not implemented yet.</small>
+  </div>
+</form>
+{% else %}
+<div class="alert alert-info mt-4" role="alert">
+  No log fields are configured yet. Visit
+  <a href="{{ url_for('admin.configureLogFeature') }}">/features/log</a>
+  to build the form.
+</div>
+{% endif %}
+{% endblock %}

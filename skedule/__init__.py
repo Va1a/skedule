@@ -1,9 +1,11 @@
 import json
+import secrets
 
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from flask import session
 
 from skedule.config import Config
 
@@ -30,6 +32,7 @@ def create_app(config_class=Config):
     from skedule.admin.routes import admin
     from skedule.api.routes import api
     from skedule.errors.handlers import errors
+    from skedule.features import is_feature_enabled
     from skedule.main.routes import main
     from skedule.users.routes import users
 
@@ -38,5 +41,17 @@ def create_app(config_class=Config):
     app.register_blueprint(main)
     app.register_blueprint(errors)
     app.register_blueprint(api)
+
+    @app.context_processor
+    def inject_feature_flags():
+        feature_api_token = session.get("feature_api_token")
+        if feature_api_token is None:
+            feature_api_token = secrets.token_urlsafe(32)
+            session["feature_api_token"] = feature_api_token
+
+        return {
+            "feature_enabled": is_feature_enabled,
+            "feature_api_token": feature_api_token,
+        }
 
     return app

@@ -1,4 +1,14 @@
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask_login import login_required
 
 from skedule import db
@@ -11,7 +21,13 @@ from skedule.admin.forms import (
     EditTemplateForm,
     NewWeekScheduleForm,
 )
-from skedule.models import Day, Shift, Template, User
+from skedule.features import (
+    feature_required,
+    get_feature_entry,
+    get_feature_entries,
+    set_feature_enabled,
+)
+from skedule.models import Day, LogField, Shift, Template, User
 from skedule.utils import (
     daysOfCalendarWeek,
     getDayName,
@@ -23,6 +39,166 @@ from skedule.utils import (
 )
 
 admin = Blueprint("admin", __name__)
+LOG_FIELD_TYPES = {
+    "text": "Text",
+    "time": "Time",
+    "select": "Selection",
+}
+
+
+def hasValidFeatureCsrfToken():
+    request_token = request.headers.get("X-Feature-CSRF-Token") or request.form.get(
+        "feature_api_token"
+    )
+    session_token = session.get("feature_api_token")
+    return bool(request_token and request_token == session_token)
+
+
+def getLogFields():
+    return LogField.query.order_by(LogField.position.asc(), LogField.id.asc()).all()
+
+
+@admin.route("/admin/features", methods=["GET", "POST"])
+@login_required
+def manageFeatures():
+    return render_template("features.html", features=get_feature_entries())
+
+
+@admin.route("/features/<string:feature_name>")
+@login_required
+def featureDetail(feature_name):
+    feature = get_feature_entry(feature_name)
+    if feature is None:
+        abort(404)
+
+    if feature_name == "logs":
+        return redirect(url_for("admin.configureLogFeature"))
+
+    return render_template("feature_detail.html", feature=feature)
+
+
+@admin.route("/api/admin/features/<string:feature_name>", methods=["POST"])
+@login_required
+def updateFeature(feature_name):
+    if not hasValidFeatureCsrfToken():
+        return jsonify({"error": "Invalid CSRF token."}), 403
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get("enabled"), bool):
+        return jsonify({"error": "Request must include a boolean `enabled` field."}), 400
+
+    feature = set_feature_enabled(feature_name, data["enabled"])
+    if feature is None:
+        return jsonify({"error": "Unknown feature."}), 404
+
+    return jsonify(
+        {
+            "feature": feature.toJSON(),
+            "message": f"{feature.name} {'enabled' if feature.enabled else 'disabled'}.",
+        }
+    )
+
+
+@admin.route("/features/log", methods=["GET", "POST"])
+@login_required
+def configureLogFeature():
+    if request.method == "POST":
+        if not hasValidFeatureCsrfToken():
+            abort(403)
+
+        label = request.form.get("label", "").strip()
+        field_key = request.form.get("field_key", "").strip()
+        field_type = request.form.get("field_type", "").strip()
+        required = request.form.get("required") == "on"
+        raw_options = request.form.get("options", "")
+
+        if not label or not field_key:
+            flash("Label and field key are required.", "danger")
+            return redirect(url_for("admin.configureLogFeature"))
+
+        if field_type not in LOG_FIELD_TYPES:
+            flash("Unsupported field type.", "danger")
+            return redirect(url_for("admin.configureLogFeature"))
+
+        if LogField.query.filter_by(field_key=field_key).first():
+            flash("Field key already exists.", "danger")
+            return redirect(url_for("admin.configureLogFeature"))
+
+        options = [
+            option.strip()
+            for option in raw_options.split(",")
+            if option.strip()
+        ]
+        if field_type == "select" and not options:
+            flash("Selection fields require at least one option.", "danger")
+            return redirect(url_for("admin.configureLogFeature"))
+        if field_type != "select":
+            options = []
+
+        current_position = db.session.scalar(db.select(db.func.max(LogField.position))) or 0
+        field = LogField(
+            label=label,
+            field_key=field_key,
+            field_type=field_type,
+            required=required,
+            options=options,
+            position=current_position + 1,
+        )
+        db.session.add(field)
+        db.session.commit()
+        flash("Log field added.", "success")
+        return redirect(url_for("admin.configureLogFeature"))
+
+    return render_template(
+        "feature_log_builder.html",
+        feature_name="logs",
+        field_types=LOG_FIELD_TYPES,
+        fields=getLogFields(),
+    )
+
+
+@admin.route("/features/log/field/<int:field_id>/delete", methods=["POST"])
+@login_required
+def deleteLogField(field_id):
+    if not hasValidFeatureCsrfToken():
+        abort(403)
+
+    field = db.get_or_404(LogField, field_id)
+    db.session.delete(field)
+    db.session.commit()
+    flash("Log field deleted.", "success")
+    return redirect(url_for("admin.configureLogFeature"))
+
+
+@admin.route("/api/admin/features/log/fields/reorder", methods=["POST"])
+@login_required
+def reorderLogFields():
+    if not hasValidFeatureCsrfToken():
+        return jsonify({"error": "Invalid CSRF token."}), 403
+
+    data = request.get_json(silent=True)
+    ordered_ids = data.get("field_ids") if isinstance(data, dict) else None
+    if not isinstance(ordered_ids, list) or not all(
+        isinstance(field_id, int) for field_id in ordered_ids
+    ):
+        return jsonify({"error": "Request must include a list of integer field_ids."}), 400
+
+    fields = LogField.query.order_by(LogField.position.asc(), LogField.id.asc()).all()
+    existing_ids = {field.id for field in fields}
+    if set(ordered_ids) != existing_ids:
+        return jsonify({"error": "field_ids must match the current set of log fields."}), 400
+
+    position_by_id = {field_id: index + 1 for index, field_id in enumerate(ordered_ids)}
+    for field in fields:
+        field.position = position_by_id[field.id]
+
+    db.session.commit()
+    return jsonify(
+        {
+            "message": "Log fields reordered.",
+            "field_ids": ordered_ids,
+        }
+    )
 
 
 def getCalendarWeek(inputWeekOf):
@@ -268,6 +444,13 @@ def viewTemplates():
         templates=templates,
         hours=[str(i).zfill(4) for i in range(800, 2400, 100)],
     )
+
+
+@admin.route("/admin/logs")
+@login_required
+@feature_required("logs")
+def viewLogs():
+    return render_template("view_logs.html")
 
 
 @admin.route("/schedule/configure/template/<int:template_id>", methods=["GET", "POST"])

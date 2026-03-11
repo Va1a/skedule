@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from skedule import bcrypt, create_app, db
-from skedule.models import Alert, Assignment, Day, Shift, User
+from skedule.models import Alert, Assignment, Day, Feature, LogField, Shift, User
 from tests.test_config import TestConfig
 
 
@@ -106,6 +106,43 @@ def alert_factory(app):
         db.session.add(alert)
         db.session.commit()
         return alert
+
+    return factory
+
+
+@pytest.fixture
+def feature_factory(app):
+    def factory(name, enabled=False, **overrides):
+        feature = Feature.query.filter_by(name=name).first()
+        if feature is None:
+            feature = Feature(name=name, enabled=enabled, **overrides)
+            db.session.add(feature)
+        else:
+            feature.enabled = enabled
+            for key, value in overrides.items():
+                setattr(feature, key, value)
+        db.session.commit()
+        return feature
+
+    return factory
+
+
+@pytest.fixture
+def log_field_factory(app):
+    def factory(**overrides):
+        index = LogField.query.count() + 1
+        field = LogField(
+            label=overrides.pop("label", f"Field {index}"),
+            field_key=overrides.pop("field_key", f"field_{index}"),
+            field_type=overrides.pop("field_type", "text"),
+            required=overrides.pop("required", False),
+            options=overrides.pop("options", []),
+            position=overrides.pop("position", index),
+            **overrides,
+        )
+        db.session.add(field)
+        db.session.commit()
+        return field
 
     return factory
 

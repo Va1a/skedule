@@ -109,30 +109,36 @@
               Schedule
             </a>
           </li>
+          {% if feature_enabled('logs') %}
           <li class="nav-item">
-            <a class="nav-link" href="/log">
+            <a class="nav-link" href="{{ url_for('main.log') }}">
               <span data-feather="file-text" class="align-text-bottom"></span>
               Log
             </a>
           </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link" href="/roster">
               <span data-feather="users" class="align-text-bottom"></span>
               Roster
             </a>
           </li>
+          {% if feature_enabled('leaderboard') %}
           <li class="nav-item">
-            <a class="nav-link" href="/leaderboard">
+            <a class="nav-link" href="{{ url_for('main.leaderboard') }}">
               <span data-feather="bar-chart-2" class="align-text-bottom"></span>
               Leaderboard
             </a>
           </li>
+          {% endif %}
+          {% if feature_enabled('discussion') %}
           <li class="nav-item">
-            <a class="nav-link" href="/discussion">
+            <a class="nav-link" href="{{ url_for('main.discussion') }}">
               <span data-feather="smile" class="align-text-bottom"></span>
               Discussion
             </a>
           </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link" href="/alerts">
               <span data-feather="bell" class="align-text-bottom"></span>
@@ -154,16 +160,24 @@
               Approve Requests
             </a>
           </li>
+          {% if feature_enabled('logs') %}
           <li class="nav-item">
-            <a class="nav-link" href="#">
+            <a class="nav-link" href="{{ url_for('admin.viewLogs') }}">
               <span data-feather="book" class="align-text-bottom"></span>
               View Logs
             </a>
           </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link" href="{{url_for('admin.configureSchedule')}}">
               <span data-feather="settings" class="align-text-bottom"></span>
               Configure Schedule
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin.manageFeatures') }}">
+              <span data-feather="sliders" class="align-text-bottom"></span>
+              Features
             </a>
           </li>
           <li class="nav-item">

@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom gap-3">
+  <h1 class="h2 mb-0">{{ feature.label }}</h1>
+  <div class="d-flex align-items-center gap-3">
+    <label class="mb-0 fw-semibold feature-toggle-state" id="feature-toggle-label" for="feature-{{ feature.name }}">
+      {{ 'Enabled' if feature.enabled else 'Disabled' }}
+    </label>
+    <div class="form-check form-switch m-0 feature-page-switch">
+      <input
+        class="form-check-input feature-toggle"
+        type="checkbox"
+        role="switch"
+        id="feature-{{ feature.name }}"
+        data-feature-name="{{ feature.name }}"
+        {% if feature.enabled %}checked{% endif %}
+      >
+    </div>
+  </div>
+</div>
+
+<p class="text-muted">{{ feature.description }}</p>
+
+<div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light">
+  <p class="mb-0 text-muted">
+    Detailed configuration for {{ feature.label|lower }} is not implemented yet.
+  </p>
+</div>
+
+<script>
+(() => {
+  const toggle = document.querySelector('.feature-toggle');
+  const toggleLabel = document.getElementById('feature-toggle-label');
+  const csrfToken = '{{ feature_api_token }}';
+
+  async function updateFeature() {
+    const previousState = !toggle.checked;
+    const previousLabel = toggleLabel.textContent;
+    toggle.disabled = true;
+    toggleLabel.classList.add('feature-toggle-pending');
+
+    try {
+      const response = await fetch('/api/admin/features/{{ feature.name }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Feature-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ enabled: toggle.checked }),
+        credentials: 'same-origin',
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to update feature.');
+      }
+
+      toggleLabel.textContent = payload.feature.enabled ? 'Enabled' : 'Disabled';
+    } catch (error) {
+      toggle.checked = previousState;
+      toggleLabel.textContent = previousLabel;
+    } finally {
+      toggle.disabled = false;
+      toggleLabel.classList.remove('feature-toggle-pending');
+    }
+  }
+
+  toggle.addEventListener('change', updateFeature);
+})();
+</script>
+{% endblock %}

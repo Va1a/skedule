@@ -1,0 +1,39 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Features</h1>
+</div>
+
+<p class="text-muted">Enable or disable instance-level functionality for this Skedule deployment.</p>
+
+<div
+  id="featureList"
+  class="row g-3"
+>
+  {% for feature in features %}
+  <div class="col-lg-4 col-md-6">
+    <div class="card h-100 feature-switch-row">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center justify-content-between gap-3">
+          <div class="d-flex align-items-center gap-2">
+            <span data-feather="{{ feature.icon }}" class="align-text-bottom"></span>
+            <h2 class="h5 mb-0">{{ feature.label }}</h2>
+          </div>
+          <a
+            href="{% if feature.name == 'logs' %}{{ url_for('admin.configureLogFeature') }}{% else %}{{ url_for('admin.featureDetail', feature_name=feature.name) }}{% endif %}"
+            class="btn btn-sm btn-outline-secondary"
+            aria-label="Open {{ feature.label }} settings"
+          >
+            &rarr;
+          </a>
+        </div>
+        <p class="text-muted small mt-3 mb-2">{{ feature.description }}</p>
+        <div class="small text-muted">
+          {{ 'Enabled' if feature.enabled else 'Disabled' }}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

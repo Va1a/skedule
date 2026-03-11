@@ -218,3 +218,37 @@ class Day(db.Model):
                 for shift in self.shifts
             ],
         }
+
+
+class Feature(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=False, unique=True)
+    enabled = db.Column(db.Boolean, nullable=False, default=False)
+
+    def toJSON(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "enabled": self.enabled,
+        }
+
+
+class LogField(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    label = db.Column(db.String(128), nullable=False)
+    field_key = db.Column(db.String(64), nullable=False, unique=True)
+    field_type = db.Column(db.String(32), nullable=False)
+    required = db.Column(db.Boolean, nullable=False, default=False)
+    options = db.Column(db.JSON, nullable=False, default=list)
+    position = db.Column(db.Integer, nullable=False, default=0)
+
+    def toJSON(self):
+        return {
+            "id": self.id,
+            "label": self.label,
+            "field_key": self.field_key,
+            "field_type": self.field_type,
+            "required": self.required,
+            "options": self.options,
+            "position": self.position,
+        }

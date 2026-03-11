@@ -12,8 +12,9 @@ from flask import (
 from flask_login import current_user, login_required
 from sqlalchemy import and_
 
+from skedule.features import feature_required
 from skedule import db
-from skedule.models import Alert, Assignment, Day, Shift, User
+from skedule.models import Alert, Assignment, Day, LogField, Shift, User
 from skedule.utils import (
     daysOfCalendarWeek,
     getDayName,
@@ -177,6 +178,28 @@ def schedule():
         owl=oneWeekLater(weekOf),
         hours=[str(i).zfill(4) for i in range(800, 2400, 100)],
     )
+
+
+@main.route("/log")
+@login_required
+@feature_required("logs")
+def log():
+    fields = LogField.query.order_by(LogField.position.asc(), LogField.id.asc()).all()
+    return render_template("log.html", fields=fields)
+
+
+@main.route("/leaderboard")
+@login_required
+@feature_required("leaderboard")
+def leaderboard():
+    return render_template("leaderboard.html")
+
+
+@main.route("/discussion")
+@login_required
+@feature_required("discussion")
+def discussion():
+    return render_template("discussion.html")
 
 
 @main.route("/upcoming")

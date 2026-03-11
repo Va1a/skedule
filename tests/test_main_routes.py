@@ -74,6 +74,78 @@ def test_schedule_invalid_week_returns_404(client, logged_in_user):
     assert b"404 - Not Found" in response.data
 
 
+def test_log_page_requires_feature_to_be_enabled(client, logged_in_user):
+    response = client.get("/log")
+
+    assert response.status_code == 404
+    assert b"404 - Not Found" in response.data
+
+
+def test_log_page_renders_when_feature_is_enabled(client, logged_in_user, feature_factory):
+    feature_factory(name="logs", enabled=True)
+
+    response = client.get("/log")
+
+    assert response.status_code == 200
+    assert b"Log" in response.data
+
+
+def test_log_page_renders_dynamic_fields_when_configured(
+    client,
+    logged_in_user,
+    feature_factory,
+    log_field_factory,
+):
+    feature_factory(name="logs", enabled=True)
+    log_field_factory(label="Officer", field_key="officer", field_type="text", required=True)
+    log_field_factory(label="Start Time", field_key="start_time", field_type="time")
+    log_field_factory(
+        label="Shift Type",
+        field_key="shift_type",
+        field_type="select",
+        options=["Patrol", "Desk"],
+    )
+
+    response = client.get("/log")
+
+    assert response.status_code == 200
+    assert b'name="officer"' in response.data
+    assert b'type="time"' in response.data
+    assert b'<option value="Patrol">Patrol</option>' in response.data
+
+
+def test_leaderboard_requires_feature_to_be_enabled(client, logged_in_user):
+    response = client.get("/leaderboard")
+
+    assert response.status_code == 404
+    assert b"404 - Not Found" in response.data
+
+
+def test_leaderboard_renders_when_feature_is_enabled(client, logged_in_user, feature_factory):
+    feature_factory(name="leaderboard", enabled=True)
+
+    response = client.get("/leaderboard")
+
+    assert response.status_code == 200
+    assert b"Leaderboard" in response.data
+
+
+def test_discussion_requires_feature_to_be_enabled(client, logged_in_user):
+    response = client.get("/discussion")
+
+    assert response.status_code == 404
+    assert b"404 - Not Found" in response.data
+
+
+def test_discussion_renders_when_feature_is_enabled(client, logged_in_user, feature_factory):
+    feature_factory(name="discussion", enabled=True)
+
+    response = client.get("/discussion")
+
+    assert response.status_code == 200
+    assert b"Discussion" in response.data
+
+
 def test_upcoming_can_hide_pending_requests(
     client,
     logged_in_user,

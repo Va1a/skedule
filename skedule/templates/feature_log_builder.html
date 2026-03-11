@@ -1,0 +1,253 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom gap-3">
+  <h1 class="h2 mb-0">Log Builder</h1>
+  <div class="d-flex align-items-center gap-3">
+    <label class="mb-0 fw-semibold feature-toggle-state" id="feature-toggle-label" for="feature-logs">
+      {{ 'Enabled' if feature_enabled(feature_name) else 'Disabled' }}
+    </label>
+    <div class="form-check form-switch m-0 feature-page-switch">
+      <input
+        class="form-check-input feature-toggle"
+        type="checkbox"
+        role="switch"
+        id="feature-logs"
+        data-feature-name="logs"
+        {% if feature_enabled(feature_name) %}checked{% endif %}
+      >
+    </div>
+  </div>
+</div>
+
+<p class="text-muted">Configure the fields that appear on the dynamic log form.</p>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light h-100">
+      <h2 class="h5 mb-3">Add Field</h2>
+      <form method="POST">
+        <input type="hidden" name="feature_api_token" value="{{ feature_api_token }}">
+
+        <div class="mb-3">
+          <label for="label" class="form-label">Label</label>
+          <input id="label" name="label" class="form-control" maxlength="128" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="field_key" class="form-label">Field Key</label>
+          <input
+            id="field_key"
+            name="field_key"
+            class="form-control"
+            maxlength="64"
+            placeholder="example_key"
+            required
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="field_type" class="form-label">Field Type</label>
+          <select id="field_type" name="field_type" class="form-select" required>
+            {% for field_type, label in field_types.items() %}
+            <option value="{{ field_type }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3" id="logFieldOptionsGroup">
+          <label for="options" class="form-label">Selection Options</label>
+          <input
+            id="options"
+            name="options"
+            class="form-control"
+            placeholder="Option A, Option B, Option C"
+          >
+          <div class="form-text">Only used for selection fields.</div>
+        </div>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="required" name="required">
+          <label class="form-check-label" for="required">Required field</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Field</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="d-flex flex-column px-3 pt-3 pb-3 border bg-light h-100">
+      <h2 class="h5 mb-3">Current Log Fields</h2>
+      {% if fields %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Label</th>
+              <th>Key</th>
+              <th>Type</th>
+              <th>Required</th>
+              <th>Options</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="logFieldsTableBody">
+            {% for field in fields %}
+            <tr draggable="true" data-field-id="{{ field.id }}">
+              <td class="text-muted log-drag-cell">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-link text-muted log-drag-handle"
+                  aria-label="Drag to reorder {{ field.label }}"
+                  title="Drag to reorder"
+                >
+                  <span class="log-drag-dots" aria-hidden="true">••<br>••<br>••</span>
+                </button>
+              </td>
+              <td>{{ field.label }}</td>
+              <td><code>{{ field.field_key }}</code></td>
+              <td>{{ field.field_type }}</td>
+              <td>{{ 'Yes' if field.required else 'No' }}</td>
+              <td>{{ field.options|join(', ') if field.options else '—' }}</td>
+              <td class="text-end">
+                <form method="POST" action="{{ url_for('admin.deleteLogField', field_id=field.id) }}">
+                  <input type="hidden" name="feature_api_token" value="{{ feature_api_token }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">No fields have been added yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const toggle = document.querySelector('.feature-toggle');
+  const toggleLabel = document.getElementById('feature-toggle-label');
+  const optionsGroup = document.getElementById('logFieldOptionsGroup');
+  const fieldTypeSelect = document.getElementById('field_type');
+  const tableBody = document.getElementById('logFieldsTableBody');
+  const csrfToken = '{{ feature_api_token }}';
+  let draggedRow = null;
+
+  function updateOptionsVisibility() {
+    optionsGroup.style.display = fieldTypeSelect.value === 'select' ? 'block' : 'none';
+  }
+
+  async function updateFeature() {
+    const previousState = !toggle.checked;
+    const previousLabel = toggleLabel.textContent;
+    toggle.disabled = true;
+    toggleLabel.classList.add('feature-toggle-pending');
+
+    try {
+      const response = await fetch('/api/admin/features/logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Feature-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ enabled: toggle.checked }),
+        credentials: 'same-origin',
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to update feature.');
+      }
+
+      toggleLabel.textContent = payload.feature.enabled ? 'Enabled' : 'Disabled';
+    } catch (error) {
+      toggle.checked = previousState;
+      toggleLabel.textContent = previousLabel;
+    } finally {
+      toggle.disabled = false;
+      toggleLabel.classList.remove('feature-toggle-pending');
+    }
+  }
+
+  async function saveFieldOrder() {
+    if (!tableBody) {
+      return;
+    }
+
+    const fieldIds = Array.from(tableBody.querySelectorAll('tr')).map((row) => (
+      Number.parseInt(row.dataset.fieldId, 10)
+    ));
+
+    const response = await fetch('/api/admin/features/log/fields/reorder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Feature-CSRF-Token': csrfToken,
+      },
+      body: JSON.stringify({ field_ids: fieldIds }),
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      const payload = await response.json();
+      throw new Error(payload.error || 'Unable to reorder log fields.');
+    }
+  }
+
+  function getDragAfterElement(container, clientY) {
+    const draggableRows = [...container.querySelectorAll('tr:not(.dragging)')];
+    return draggableRows.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = clientY - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset, element: child };
+      }
+      return closest;
+    }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+  }
+
+  updateOptionsVisibility();
+  fieldTypeSelect.addEventListener('change', updateOptionsVisibility);
+  toggle.addEventListener('change', updateFeature);
+
+  if (tableBody) {
+    tableBody.querySelectorAll('tr').forEach((row) => {
+      row.addEventListener('dragstart', () => {
+        draggedRow = row;
+        row.classList.add('dragging');
+      });
+
+      row.addEventListener('dragend', async () => {
+        row.classList.remove('dragging');
+        try {
+          await saveFieldOrder();
+        } catch (error) {
+          window.location.reload();
+        } finally {
+          draggedRow = null;
+        }
+      });
+    });
+
+    tableBody.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      if (!draggedRow) {
+        return;
+      }
+
+      const afterElement = getDragAfterElement(tableBody, event.clientY);
+      if (!afterElement) {
+        tableBody.appendChild(draggedRow);
+      } else {
+        tableBody.insertBefore(draggedRow, afterElement);
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

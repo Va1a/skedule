@@ -39,6 +39,8 @@ dependencies = [
 ]
 
 [project.scripts]
+dbshell = "devtools.dbshell:main"
+dev = "devtools.dev:main"
 lint = "devtools.lint:main"
 localdb = "devtools.localdb:main"
 dummydata = "devtools.dummydata:main"
